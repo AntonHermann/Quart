@@ -8,3 +8,6 @@ edition = "2018"
 
 [dependencies]
 termion = "1.5.4"
+# itertools = "0.8.2"
+log = "0.4.8"
+flexi_logger = "0.14.8"

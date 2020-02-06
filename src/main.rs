@@ -19,6 +19,13 @@ pub use self::game::{
 };
 
 fn main() -> io::Result<()> {
+	flexi_logger::Logger::with_env_or_str("info")
+		.log_to_file()
+		.directory("logs")
+		.create_symlink("log.log")
+		.format(flexi_logger::opt_format)
+		.start().unwrap();
+
 	// prepare input/output
 	let stdout = io::stdout().into_raw_mode()?;
 	let mut stdout = AlternateScreen::from(stdout);
