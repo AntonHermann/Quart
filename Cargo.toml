@@ -1,5 +1,5 @@
 [package]
-name = "quartus"
+name = "quart"
 version = "0.1.0"
 authors = ["Anton Hermann <antonoehler@gmx.de>"]
 edition = "2018"
