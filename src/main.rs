@@ -11,28 +11,30 @@ use termion::{
 use std::io::{self, Write};
 
 use self::draw::*;
+use self::GameState::*;
 
 /// One field on a game board
-pub enum Field {
-	Empty,
-	Occupied {
-		big: bool,
-		dark: bool,
-		round: bool,
-		flat: bool,
-	}
-}
-impl Default for Field {
-	fn default() -> Self {
-		Field::Empty
-	}
+#[derive(PartialEq, Eq)]
+pub struct Piece {
+	big: bool,
+	dark: bool,
+	round: bool,
+	flat: bool,
 }
 
-/// A game board
-type Board = [[Field; 4]; 4];
+/// The state the game is in
+#[derive(PartialEq, Eq)]
+enum GameState {
+	SelectPiece,
+	PlacePiece,
+}
+
+/// A game board (array of rows)
+type Board = [[Option<Piece>; 4]; 4];
 
 /// The text above the pieces board
-const PIECES_BOARD_LABEL: &'static str = "Verfügbare Steine";
+const PIECES_BOARD_LABEL: &'static str = "Available Pieces";
+// const PIECES_BOARD_LABEL: &'static str = "Verfügbare Steine";
 
 fn main() -> io::Result<()> {
 	// prepare input/output
@@ -42,16 +44,18 @@ fn main() -> io::Result<()> {
 	write!(stdout, "{}{}{}", cursor::Hide, cursor::Goto(2,2), clear::All)?;
 
 	// game state
-	let main_board:   Board = Board::default();
-	let pieces_board: Board = full_board();
-	let mut curr = (1,1);
+	let mut main_board:   Board = Board::default();
+	let mut pieces_board: Board = full_board();
+	let mut curr = (0,0);
+	let mut selected_piece: Option<Piece> = None;
+	let mut state = GameState::SelectPiece;
 
 	// 2nd board left. 2: offset main board. +1: last edge, +3: distance to main board
-	let pieces_board_left = 2 + 4*(FIELD_W+1) + 1 + 10;
+	let pieces_board_left = 4*(FIELD_W+1) + 10 + 1 + 10;
 
 	// initial drawing
-	draw_board(&mut stdout, &main_board, curr, true)?;
-	draw_label(&mut stdout, pieces_board_left + 3, 1, 25, PIECES_BOARD_LABEL)?;
+	draw_board(&mut stdout, &main_board, (9,9), true)?;
+	draw_label(&mut stdout, (pieces_board_left + 3, 1), 25, PIECES_BOARD_LABEL)?;
 	write!(stdout, "{}", cursor::Goto(pieces_board_left, 2))?;
 	draw_board(&mut stdout, &pieces_board, curr, false)?;
 
@@ -69,12 +73,35 @@ fn main() -> io::Result<()> {
 			Key::Char(n) if "1234".contains(n) => {
 				curr.0 = "1234".find(n).unwrap() as u16;
 			},
+			Key::Char('\n') if state == SelectPiece  => { // Enter, SelectPiece mode
+				selected_piece = pieces_board[curr.1 as usize][curr.0 as usize].take();
+				if selected_piece.is_some() {
+					state = PlacePiece;
+				}
+			},
+			Key::Char('\n') if state == PlacePiece => { // Enter, PlacePiece
+				if main_board[curr.1 as usize][curr.0 as usize].is_none() {
+					main_board[curr.1 as usize][curr.0 as usize] = selected_piece.take();
+					state = SelectPiece;
+				}
+			},
 			_ => {},
 		}
+
+		// redraw boards and piece preview
+		let main_curr = if state == PlacePiece { curr } else { (9,9) };
 		write!(stdout, "{}{}", cursor::Goto(2,2), clear::All)?;
-		draw_board(&mut stdout, &main_board, curr, true)?;
+		draw_board(&mut stdout, &main_board, main_curr, true)?;
+
+		let pieces_curr = if state == SelectPiece { curr } else { (9,9) };
 		write!(stdout, "{}", cursor::Goto(pieces_board_left, 2))?;
-		draw_board(&mut stdout, &pieces_board, (5,5), false)?;
+		draw_board(&mut stdout, &pieces_board, pieces_curr, false)?;
+
+		draw_label(&mut stdout, (pieces_board_left + 3, 1), 25, PIECES_BOARD_LABEL)?;
+
+		if state == PlacePiece {
+			draw_selected_piece(&mut stdout, (35, 3), &selected_piece)?;
+		}
 	}
 
 	// restore state and exit
@@ -94,10 +121,10 @@ fn full_board() -> Board {
 			let round = y <= 1;
 			let flat  = y % 2 == 0;
 
-			board[x][y] = Field::Occupied { big, dark, round, flat };
+			board[x][y] = Some(Piece { big, dark, round, flat });
 		}
 	}
-	// board[0][0] = Field::Empty;
+	// board[0][0] = None;
 
 	board
 }

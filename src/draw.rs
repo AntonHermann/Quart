@@ -8,7 +8,7 @@ use termion::{
 	style,
 	color,
 };
-use crate::{Board, Field};
+use crate::{Board, Piece};
 
 /// The width of a single field
 pub const FIELD_W: u16 = 5; // only used in main.rs
@@ -18,8 +18,8 @@ const LINE_H  : &'static str = "─────";
 const LINE_H_S: &'static str = "═════";
 
 /// Creates the visual representation of a field, split into 3 lines
-fn field_strs(field: &Field) -> [String; 3] {
-	if let Field::Occupied { big, dark, round, flat } = field {
+fn field_strs(field: &Option<Piece>) -> [String; 3] {
+	if let Some(Piece { big, dark, round, flat }) = field {
 		let d = if *dark  { color::Fg(color::Red).to_string() } else { "".into() };
 		let (rl,rr) = if *round { ("(",")") } else { ("|","|") };
 		let f1 = if *flat  { "---" } else { "\\ /" };
@@ -149,9 +149,20 @@ pub fn draw_board<W: Write>(mut out: W, board: &Board, curr: (u16, u16), main: b
 	out.flush()
 }
 
+pub fn draw_selected_piece<W: Write>(mut out: W, (x,y): (u16,u16), piece: &Option<Piece>) -> io::Result<()> {
+	write!(out, "{}┌PLACE┐", Goto(x,y))?;
+	let piece_strs = field_strs(piece);
+	for row in 0..3 {
+		write!(out, "{}│{}│", Goto(x,y+row+1), piece_strs[row as usize])?;
+	}
+	write!(out, "{}└─────┘", Goto(x,y+4))?;
+	out.flush()
+}
+
 /// Draw a label, with origin at x,y, such that is is centered inside the given width
 /// label shouldn't be wider thatn total_width
-pub fn draw_label<W: Write>(mut out: W, x: u16, y: u16, total_width: u16, label: &str) -> io::Result<()> {
+pub fn draw_label<W: Write>(mut out: W, (x, y): (u16, u16), total_width: u16, label: &str) -> io::Result<()> {
 	let offset = (total_width / 2) - (label.len() as u16 / 2);
-	write!(out, "{}{}", cursor::Goto(x + offset, y), label)
+	write!(out, "{}{}", cursor::Goto(x + offset, y), label)?;
+	out.flush()
 }
