@@ -7,7 +7,6 @@ use termion::{
 	event::Key,
 	cursor,
 	clear,
-	color,
 };
 use std::io::{self, Write};
 
@@ -53,7 +52,7 @@ fn main() -> io::Result<()> {
 			Key::Down  => curr.1 = (curr.1 + 4 + 1) % 4,
 			Key::Left  => curr.0 = (curr.0 + 4 - 1) % 4,
 			Key::Right => curr.0 = (curr.0 + 4 + 1) % 4,
-			Key::Esc => break,
+			Key::Esc | Key::Char('q') => break,
 			_ => {},
 		}
 		write!(stdout, "{}{}", cursor::Goto(2,2), clear::All)?;

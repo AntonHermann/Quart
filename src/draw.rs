@@ -1,6 +1,7 @@
 use std::io::{self, Write};
 use termion::{
 	cursor::{
+		self,
 		DetectCursorPos,
 		Goto,
 	},
@@ -130,38 +131,37 @@ pub fn draw_board2<W: Write>(mut out: W, board: &Board) -> io::Result<()> {
 	let g = color::Green.fg_str();
 	let r = color::Reset.fg_str();
 
-	write!(out, "{}┌──A──┬──B──┬──C──┬──D──┐", g)?;
+	// write!(out, "{}┌──A──┬──B──┬──C──┬──D──┐", g)?;
+	write!(out, "{}{}   A     B     C     D   ", g, cursor::Up(1))?;
+	write!(out, "{}┌─────┬─────┬─────┬─────┐", Goto(cursor_x, cursor_y))?;
 	for y in 0..4 {
 		write!(out, "{}", Goto(cursor_x, cursor_y + 4*y))?;
 		if y > 0 {
 			write!(out, "{}├─────┼─────┼─────┼─────┤", g)?;
 		}
 		
+		write!(out, "{}{}{}", Goto(cursor_x-1,cursor_y+4*y+2), g, 4 - y)?;
+		write!(out, "{}{}{}", Goto(cursor_x+25,cursor_y+4*y+2), 4 - y, r)?;
+
 		for rows in 0..3 {
 			write!(out, "{}", Goto(cursor_x, cursor_y + 4*y + rows + 1))?;
 			for x in 0..4 {
 				// left/middle cell border
-				if rows == 1 && x == 0 {
-					write!(out, "{}{}{}", g, 4 - y, r)?;
-				} else {
-					write!(out, "{}│{}", g, r)?;
-				}
+				write!(out, "{}│{}", g, r)?;
 
 				// cell content
 				write!(out, "{}", field_strs(&board[y as usize][x as usize])[rows as usize])?;
 
 				// right-most cell border
 				if x == 3 {
-					if rows == 1 {
-						write!(out, "{}{}", g, 4 - y)?;
-					} else {
-						write!(out, "{}│", g)?;
-					}
+					write!(out, "{}│", g)?;
 				}
 			}
 		}
 	}
-	write!(out, "{}{}└──A──┴──B──┴──C──┴──D──┘{}", Goto(cursor_x, cursor_y + 4*4), g, r)?;
+	// write!(out, "{}{}└──A──┴──B──┴──C──┴──D──┘{}", Goto(cursor_x, cursor_y + 4*4), g, r)?;
+	write!(out, "{}{}└─────┴─────┴─────┴─────┘", Goto(cursor_x, cursor_y + 4*4), g)?;
+	write!(out, "{}   A     B     C     D   {}", Goto(cursor_x, cursor_y + 4*4 + 1), r)?;
 
 	out.flush()
 }
