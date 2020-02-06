@@ -15,7 +15,7 @@ const LINE_H_S: &'static str = "═════";
 #[derive(Copy, Clone)]
 pub struct SPos { pub x: u16, pub y: u16 }
 impl SPos {
-	pub fn new(x: u16, y: u16) -> Self {
+	pub fn _new(x: u16, y: u16) -> Self {
 		Self { x, y }
 	}
 	pub fn as_goto(&self) -> Goto {
@@ -34,7 +34,6 @@ impl SPos {
 		}
 	}
 }
-
 
 /// Creates the visual representation of a field, split into 3 lines
 fn field_strs(field: &Option<Piece>) -> [String; 3] {

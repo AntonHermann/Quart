@@ -1,5 +1,22 @@
 use std::ops::{Index, IndexMut};
 
+/// A position on the board
+#[derive(Copy, Clone)]
+pub struct BPos { pub x: u16, pub y: u16 }
+impl BPos {
+	pub fn new(x: u16, y: u16) -> Self {
+		Self { x, y }
+	}
+	pub fn invalid() -> Self {
+		// Self { x: std::u16::MAX, y: std::u16::MAX }
+		Self { x: 99, y: 99 }
+	}
+	pub fn _is_invalid(&self) -> bool {
+		// self.x == std::u16::MAX && self.y == std::u16::MAX
+		self.x == 99 && self.y == 99
+	}
+}
+
 /// One field on a game board
 #[derive(PartialEq, Eq)]
 pub struct Piece {
@@ -39,21 +56,10 @@ impl Board {
 		}
 		board
 	}
+	pub fn check(&self) -> bool {
+		self.0[0][0].is_some()
+		// FIXME:
+		// false
+	}
 }
 
-/// A position on the board
-#[derive(Copy, Clone)]
-pub struct BPos { pub x: u16, pub y: u16 }
-impl BPos {
-	pub fn new(x: u16, y: u16) -> Self {
-		Self { x, y }
-	}
-	pub fn invalid() -> Self {
-		// Self { x: std::u16::MAX, y: std::u16::MAX }
-		Self { x: 99, y: 99 }
-	}
-	pub fn _is_invalid(&self) -> bool {
-		// self.x == std::u16::MAX && self.y == std::u16::MAX
-		self.x == 99 && self.y == 99
-	}
-}
