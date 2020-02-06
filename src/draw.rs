@@ -2,13 +2,12 @@ use std::io::{self, Write};
 use termion::{
 	cursor::{
 		self,
-		DetectCursorPos,
 		Goto,
 	},
 	style,
 	color,
 };
-use crate::{Board, Piece};
+use crate::{Board, Piece, BPos};
 
 /// The width of a single field
 pub const FIELD_W: u16 = 5; // only used in main.rs
@@ -16,6 +15,15 @@ pub const FIELD_W: u16 = 5; // only used in main.rs
 const LINE_H  : &'static str = "─────";
 /// The horizontal line used for drawing the board - selected
 const LINE_H_S: &'static str = "═════";
+
+/// A position on the screen
+#[derive(Copy, Clone)]
+pub struct SPos { pub x: u16, pub y: u16 }
+impl SPos {
+	pub fn new(x: u16, y: u16) -> Self {
+		Self { x, y }
+	}
+}
 
 /// Creates the visual representation of a field, split into 3 lines
 fn field_strs(field: &Option<Piece>) -> [String; 3] {
@@ -47,48 +55,50 @@ fn field_strs(field: &Option<Piece>) -> [String; 3] {
 }
 
 /// Draw a horizontal delimiter, possibly highlighting the current fields border
-fn draw_h_delim<W: Write>(mut out: W, y: u16, curr: (u16, u16)) -> io::Result<()> {
+fn draw_h_delim<W: Write>(mut out: W, y: u16, curr: BPos) -> io::Result<()> {
 	// mark border if cell above or below is selected
-	let ysel = curr.1 == y || curr.1 + 1 == y;
+	let ysel = curr.y == y || curr.y + 1 == y;
 
 	// left corner
-	if ysel && curr.0 == 0 { write!(out, "{}", style::Invert)? }
+	if ysel && curr.x == 0 { write!(out, "{}", style::Invert)? }
 	write!(out, "{}", match y {
-		0 => if ysel && curr.0 == 0 { "╔" } else { "┌" },
-		4 => if ysel && curr.0 == 0 { "╚" } else { "└" },
-		_ => if ysel && curr.0 == 0 { "╠" } else { "├" },
+		0 => if ysel && curr.x == 0 { "╔" } else { "┌" },
+		4 => if ysel && curr.x == 0 { "╚" } else { "└" },
+		_ => if ysel && curr.x == 0 { "╠" } else { "├" },
 	})?;
 
 	for x in 0..3 {
 		// line segment
-		write!(out, "{}", if ysel && curr.0 == x { LINE_H_S } else { LINE_H })?;
+		write!(out, "{}", if ysel && curr.x == x { LINE_H_S } else { LINE_H })?;
 
 		// inner junction
-		if ysel && curr.0 == x+1 { write!(out, "{}", style::Invert)? }
-		let xsel = curr.0 == x || curr.0 == x + 1;
+		if ysel && curr.x == x+1 { write!(out, "{}", style::Invert)? }
+		let xsel = curr.x == x || curr.x == x + 1;
 		write!(out, "{}", match y {
 			0 => if ysel && xsel { "╦" } else { "┬" },
 			4 => if ysel && xsel { "╩" } else { "┴" },
 			_ => if ysel && xsel { "╬" } else { "┼" },
 		})?;
-		if ysel && curr.0 == x { write!(out, "{}", style::Reset)? }
+		if ysel && curr.x == x { write!(out, "{}", style::Reset)? }
 	}
-	write!(out, "{}", if ysel && curr.0 == 3 { LINE_H_S } else { LINE_H })?;
+	write!(out, "{}", if ysel && curr.x == 3 { LINE_H_S } else { LINE_H })?;
 
 	// right corner
 	write!(out, "{}{}", match y {
-		0 => if ysel && curr.0 == 3 { "╗" } else { "┐" },
-		4 => if ysel && curr.0 == 3 { "╝" } else { "┘" },
-		_ => if ysel && curr.0 == 3 { "╣" } else { "┤" },
+		0 => if ysel && curr.x == 3 { "╗" } else { "┐" },
+		4 => if ysel && curr.x == 3 { "╝" } else { "┘" },
+		_ => if ysel && curr.x == 3 { "╣" } else { "┤" },
 	}, style::Reset)
 }
 
 /// Draw a board at the current position, with [curr] as selected cells.
 /// draws a big border if [main] is true
-pub fn draw_board<W: Write>(mut out: W, board: &Board, curr: (u16, u16), main: bool) -> io::Result<()> {
-	let (cursor_x, cursor_y) = out.cursor_pos()?;
+pub fn draw_board<W: Write>(mut out: W, pos: SPos, board: &Board, curr: BPos, main: bool) -> io::Result<()> {
+	let SPos { x: cursor_x, y: cursor_y} = pos;
 
 	let v_border = if main { "║" } else { " " }; // vertical border
+
+	write!(out, "{}", Goto(cursor_x, cursor_y))?;
 
 	if main {
 		write!(out, "╔════A═════B═════C═════D════╗")?;
@@ -111,18 +121,18 @@ pub fn draw_board<W: Write>(mut out: W, board: &Board, curr: (u16, u16), main: b
 			}
 			for x in 0..4 {
 				// left/middle cell border
-				if curr.1 == y && (curr.0 == x || curr.0 + 1 == x) {
+				if curr.y == y && (curr.x == x || curr.x + 1 == x) {
 					write!(out, "{}║{}", style::Invert, style::Reset)?;
 				} else {
 					write!(out, "│")?;
 				}
 
 				// cell content
-				write!(out, "{}", field_strs(&board[y as usize][x as usize])[rows as usize])?;
+				write!(out, "{}", field_strs(&board.0[y as usize][x as usize])[rows as usize])?;
 
 				// right-most cell border
 				if x == 3 {
-					if curr == (x,y) {
+					if (curr.x,curr.y) == (x,y) {
 						write!(out, "{}║{}", style::Invert, style::Reset)?;
 					} else {
 						write!(out, "│")?;
@@ -149,20 +159,20 @@ pub fn draw_board<W: Write>(mut out: W, board: &Board, curr: (u16, u16), main: b
 	out.flush()
 }
 
-pub fn draw_selected_piece<W: Write>(mut out: W, (x,y): (u16,u16), piece: &Option<Piece>) -> io::Result<()> {
-	write!(out, "{}┌PLACE┐", Goto(x,y))?;
+pub fn draw_selected_piece<W: Write>(mut out: W, pos: SPos, piece: &Option<Piece>) -> io::Result<()> {
+	write!(out, "{}┌PLACE┐", Goto(pos.x,pos.y))?;
 	let piece_strs = field_strs(piece);
 	for row in 0..3 {
-		write!(out, "{}│{}│", Goto(x,y+row+1), piece_strs[row as usize])?;
+		write!(out, "{}│{}│", Goto(pos.x,pos.y+row+1), piece_strs[row as usize])?;
 	}
-	write!(out, "{}└─────┘", Goto(x,y+4))?;
+	write!(out, "{}└─────┘", Goto(pos.x,pos.y+4))?;
 	out.flush()
 }
 
 /// Draw a label, with origin at x,y, such that is is centered inside the given width
 /// label shouldn't be wider thatn total_width
-pub fn draw_label<W: Write>(mut out: W, (x, y): (u16, u16), total_width: u16, label: &str) -> io::Result<()> {
+pub fn draw_label<W: Write>(mut out: W, pos: SPos, total_width: u16, label: &str) -> io::Result<()> {
 	let offset = (total_width / 2) - (label.len() as u16 / 2);
-	write!(out, "{}{}", cursor::Goto(x + offset, y), label)?;
+	write!(out, "{}{}", cursor::Goto(pos.x + offset, pos.y), label)?;
 	out.flush()
 }
