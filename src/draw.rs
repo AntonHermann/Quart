@@ -10,10 +10,14 @@ use termion::{
 };
 use crate::{Board, Field};
 
+/// The width of a single field
 pub const FIELD_W: u16 = 5; // only used in main.rs
+/// The horizontal line used for drawing the board
 const LINE_H  : &'static str = "─────";
+/// The horizontal line used for drawing the board - selected
 const LINE_H_S: &'static str = "═════";
 
+/// Creates the visual representation of a field, split into 3 lines
 fn field_strs(field: &Field) -> [String; 3] {
 	if let Field::Occupied { big, dark, round, flat } = field {
 		let d = if *dark  { color::Fg(color::Red).to_string() } else { "".into() };
@@ -42,6 +46,7 @@ fn field_strs(field: &Field) -> [String; 3] {
 	}
 }
 
+/// Draw a horizontal delimiter, possibly highlighting the current fields border
 fn draw_h_delim<W: Write>(mut out: W, y: u16, curr: (u16, u16)) -> io::Result<()> {
 	// mark border if cell above or below is selected
 	let ysel = curr.1 == y || curr.1 + 1 == y;
@@ -77,22 +82,33 @@ fn draw_h_delim<W: Write>(mut out: W, y: u16, curr: (u16, u16)) -> io::Result<()
 		_ => if ysel && curr.0 == 3 { "╣" } else { "┤" },
 	}, style::Reset)
 }
-pub fn draw_board<W: Write>(mut out: W, board: &Board, curr: (u16, u16)) -> io::Result<()> {
-	let (cursor_x, cursor_y) = out.cursor_pos()?;
-	// adjust cursor y to make room for outer border
-	let cursor_y = cursor_y+1;
 
-	write!(out, "╔═══════════════════════════╗")?;
+/// Draw a board at the current position, with [curr] as selected cells.
+/// draws a big border if [main] is true
+pub fn draw_board<W: Write>(mut out: W, board: &Board, curr: (u16, u16), main: bool) -> io::Result<()> {
+	let (cursor_x, cursor_y) = out.cursor_pos()?;
+
+	let v_border = if main { "║" } else { " " }; // vertical border
+
+	if main {
+		write!(out, "╔════A═════B═════C═════D════╗")?;
+	} else {
+		write!(out, "     A     B     C     D")?;
+	}
 
 	for y in 0..4 {
-		write!(out, "{}", Goto(cursor_x, cursor_y + 4*y))?;
-		write!(out, "║ ")?;
+		write!(out, "{}{} ", Goto(cursor_x, cursor_y + 4*y + 1), v_border)?;
 		draw_h_delim(&mut out, y, curr)?;
-		write!(out, " ║")?;
+		write!(out, " {}", v_border)?;
 
 		for rows in 0..3 {
-			write!(out, "{}", Goto(cursor_x, cursor_y + 4*y + rows + 1))?;
-			write!(out, "║ ")?;
+			write!(out, "{}", Goto(cursor_x, cursor_y + 4*y + rows + 2))?;
+			// draw big border or line number
+			if rows == 1 {
+				write!(out, "{} ", 4-y)?;
+			} else {
+				write!(out, "{} ", v_border)?;
+			}
 			for x in 0..4 {
 				// left/middle cell border
 				if curr.1 == y && (curr.0 == x || curr.0 + 1 == x) {
@@ -111,57 +127,31 @@ pub fn draw_board<W: Write>(mut out: W, board: &Board, curr: (u16, u16)) -> io::
 					} else {
 						write!(out, "│")?;
 					}
-					write!(out, " ║")?;
+
+					// draw big border or line number
+					if rows == 1 {
+						write!(out, " {}", 4-y)?;
+					} else {
+						write!(out, " {}", v_border)?;
+					}
 				}
 			}
-			// out.flush()?;
 		}
 	}
-	write!(out, "{}", Goto(cursor_x, cursor_y + 4*4))?;
-	write!(out, "║ ")?;
+	write!(out, "{}{} ", Goto(cursor_x, cursor_y + 4*4 + 1), v_border)?;
 	draw_h_delim(&mut out, 4, curr)?;
-	write!(out, " ║{}╚═══════════════════════════╝", Goto(cursor_x, cursor_y + 4*4 + 1))?;
+	if main {
+		write!(out, " ║{}╚════A═════B═════C═════D════╝", Goto(cursor_x, cursor_y + 4*4 + 2))?;
+	} else {
+		write!(out, "{}     A     B     C     D", Goto(cursor_x, cursor_y + 4*4 + 2))?;
+	}
 
 	out.flush()
 }
 
-pub fn draw_board2<W: Write>(mut out: W, board: &Board) -> io::Result<()> {
-	let (cursor_x, cursor_y) = out.cursor_pos()?;
-
-	let g = color::Green.fg_str();
-	let r = color::Reset.fg_str();
-
-	// write!(out, "{}┌──A──┬──B──┬──C──┬──D──┐", g)?;
-	write!(out, "{}{}   A     B     C     D   ", g, cursor::Up(1))?;
-	write!(out, "{}┌─────┬─────┬─────┬─────┐", Goto(cursor_x, cursor_y))?;
-	for y in 0..4 {
-		write!(out, "{}", Goto(cursor_x, cursor_y + 4*y))?;
-		if y > 0 {
-			write!(out, "{}├─────┼─────┼─────┼─────┤", g)?;
-		}
-		
-		write!(out, "{}{}{}", Goto(cursor_x-1,cursor_y+4*y+2), g, 4 - y)?;
-		write!(out, "{}{}{}", Goto(cursor_x+25,cursor_y+4*y+2), 4 - y, r)?;
-
-		for rows in 0..3 {
-			write!(out, "{}", Goto(cursor_x, cursor_y + 4*y + rows + 1))?;
-			for x in 0..4 {
-				// left/middle cell border
-				write!(out, "{}│{}", g, r)?;
-
-				// cell content
-				write!(out, "{}", field_strs(&board[y as usize][x as usize])[rows as usize])?;
-
-				// right-most cell border
-				if x == 3 {
-					write!(out, "{}│", g)?;
-				}
-			}
-		}
-	}
-	// write!(out, "{}{}└──A──┴──B──┴──C──┴──D──┘{}", Goto(cursor_x, cursor_y + 4*4), g, r)?;
-	write!(out, "{}{}└─────┴─────┴─────┴─────┘", Goto(cursor_x, cursor_y + 4*4), g)?;
-	write!(out, "{}   A     B     C     D   {}", Goto(cursor_x, cursor_y + 4*4 + 1), r)?;
-
-	out.flush()
+/// Draw a label, with origin at x,y, such that is is centered inside the given width
+/// label shouldn't be wider thatn total_width
+pub fn draw_label<W: Write>(mut out: W, x: u16, y: u16, total_width: u16, label: &str) -> io::Result<()> {
+	let offset = (total_width / 2) - (label.len() as u16 / 2);
+	write!(out, "{}{}", cursor::Goto(x + offset, y), label)
 }
