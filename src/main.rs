@@ -1,4 +1,9 @@
+#![warn(missing_docs)]
+//! Simple board game as TUI
+
+/// Contains the Terminal User Interface
 mod gui;
+/// Contains fundamental game structs, game logic
 pub mod game;
 
 use termion::{
@@ -12,7 +17,7 @@ use termion::{
 use std::io::{self, Write};
 
 use self::gui::*;
-pub use self::game::{
+use self::game::{
 	board::*,
 	Game,
 	GameState::*,
@@ -42,11 +47,11 @@ fn main() -> io::Result<()> {
 	// game loop
 	for c in stdin.keys() {
 		match c? {
-			Key::Esc | Key::Char('q') => break,
-			Key::Up    => game.move_cursor( 0, -1),
-			Key::Down  => game.move_cursor( 0,  1),
-			Key::Left  => game.move_cursor(-1,  0),
-			Key::Right => game.move_cursor( 1,  0),
+			Key::Esc   | Key::Char('q') => break,
+			Key::Up    | Key::Char('k') => game.move_cursor( 0, -1),
+			Key::Down  | Key::Char('j') => game.move_cursor( 0,  1),
+			Key::Left  | Key::Char('h') => game.move_cursor(-1,  0),
+			Key::Right | Key::Char('l') => game.move_cursor( 1,  0),
 			Key::Char(n) if "abcd".contains(n) => {
 				game.set_cursor_x("abcd".find(n).unwrap() as u16);
 			},
@@ -74,6 +79,7 @@ fn main() -> io::Result<()> {
 	if game.state == GameOver {
 		println!("+++ GAME OVER +++");
 		println!("Player {} lost", game.player_turn);
+		println!("{}", game.game_over_msg.unwrap_or_default());
 	}
 	
 	Ok(())

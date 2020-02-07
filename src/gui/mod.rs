@@ -13,7 +13,7 @@ pub use self::util::*;
 use crate::game::{Game, GameState::*, BPos};
 
 /// The text above the pieces board
-const PIECES_BOARD_LABEL: &'static str = "Available Pieces";
+const PIECES_BOARD_LABEL: &str = "Available Pieces";
 
 /// A layout determining what GUI-Element goes where
 pub struct Layout {
@@ -22,6 +22,7 @@ pub struct Layout {
 	pieces_board: SPos,
 	player_turn_label: SPos,
 }
+/// A default, wide screen layout
 const LAYOUT_WIDE: Layout = Layout {
 	main_board:        SPos { x:  2, y:  2},
 	curr_piece: 	   SPos { x: 35, y:  3},
@@ -29,10 +30,12 @@ const LAYOUT_WIDE: Layout = Layout {
 	player_turn_label: SPos { x:  4, y: 22},
 };
 impl Layout {
+	/// A default, wide screen layout
 	pub fn _wide() -> Self {
 		LAYOUT_WIDE
 	}
 }
+/// This function brings the whole game to live. Here the game scene is drawn
 pub fn draw_gui<W: Write>(mut out: W, game: &Game, layout: Option<&Layout>) -> io::Result<()> {
 	let layout = layout.unwrap_or(&LAYOUT_WIDE);
 
@@ -51,7 +54,7 @@ pub fn draw_gui<W: Write>(mut out: W, game: &Game, layout: Option<&Layout>) -> i
 	draw_label(&mut out, layout.player_turn_label, 25, &player_turn_str)?;
 
 	if game.state == PlacePiece {
-		draw_selected_piece(&mut out, layout.curr_piece, &game.selected_piece)?;
+		draw_selected_piece(&mut out, layout.curr_piece, game.selected_piece)?;
 	}
 	Ok(())
 }

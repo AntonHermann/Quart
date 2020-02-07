@@ -1,3 +1,4 @@
+/// Board management, checking for game over condition
 pub mod board;
 
 pub use self::board::*;
@@ -5,8 +6,11 @@ pub use self::board::*;
 /// The state the game is in
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum GameState {
+	/// The player selects a piece which his opponent has to place on the board
 	SelectPiece,
+	/// The player has to place the piece his opponent gave him
 	PlacePiece,
+	/// One of the players lost, game over
 	GameOver,
 }
 
@@ -24,9 +28,11 @@ pub struct Game {
 	pub cursor_pos: BPos,
 	/// If there was a piece selected, it will be stored here
 	pub selected_piece: Option<Piece>,
+	/// In case of Game Over, this contains a description
+	pub game_over_msg: Option<String>,
 }
 impl Game {
-	/// Create a new [Game]
+	/// Create a new `Game`
 	pub fn new() -> Self {
 		Self {
 			state: GameState::SelectPiece,
@@ -35,6 +41,7 @@ impl Game {
 			pieces_board: Board::full(),
 			cursor_pos: BPos::new(0,0),
 			selected_piece: None,
+			game_over_msg: None,
 		}
 	}
 	/// Move the cursor position by some given deltas
@@ -52,7 +59,7 @@ impl Game {
 	}
 	/// Perform some action, depending on the game state.
 	/// Normally picking up or putting down a piece
-	pub fn enter(&mut self) -> (/* some kind of response */) {
+	pub fn enter(&mut self) {
 		match self.state {
 			GameState::SelectPiece => {
 				self.selected_piece = self.pieces_board[self.cursor_pos].take();
@@ -73,10 +80,17 @@ impl Game {
 	/// Check if the game is over (delegate from main_board)
 	/// Returns true on GameOver
 	pub fn check(&mut self) -> bool {
-		let res = self.main_board.check();
-		if res {
+		if let Some(msg) = self.main_board.check() {
 			self.state = GameState::GameOver;
+			self.game_over_msg = Some(msg);
+			true
+		} else {
+			false
 		}
-		res
+	}
+}
+impl Default for Game {
+	fn default() -> Self {
+		Self::new()
 	}
 }

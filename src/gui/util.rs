@@ -7,27 +7,32 @@ use termion::{
 use crate::{Board, Piece, BPos};
 
 /// The horizontal line used for drawing the board
-const LINE_H  : &'static str = "─────";
+const LINE_H  : &str = "─────";
 /// The horizontal line used for drawing the board - selected
-const LINE_H_S: &'static str = "═════";
+const LINE_H_S: &str = "═════";
 
 /// A position on the screen
-#[derive(Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct SPos { pub x: u16, pub y: u16 }
 impl SPos {
 	pub fn _new(x: u16, y: u16) -> Self {
 		Self { x, y }
 	}
-	pub fn as_goto(&self) -> Goto {
+	/// Create a termion [`Goto`] struct to simplify placing the terminal cursor
+	/// at the specified position
+	pub fn to_goto(self) -> Goto {
 		Goto(self.x, self.y)
 	}
-	pub fn translated_i32(&self, dx: i32, dy: i32) -> Self {
+	/// Creates a copy of self, translated by `dx`/`dy`.
+	pub fn translated_i32(self, dx: i32, dy: i32) -> Self {
 		Self {
 			x: (self.x as i32 + dx) as u16,
 			y: (self.y as i32 + dy) as u16,
 		}
 	}
-	pub fn translated(&self, dx: u16, dy: u16) -> Self {
+	/// Creates a copy of self, translated by `dx`/`dy`.
+	/// Here `dx`, `dy` are unsigned, so only steps in down/right direction are possible
+	pub fn translated(self, dx: u16, dy: u16) -> Self {
 		Self {
 			x: self.x + dx,
 			y: self.y + dy,
@@ -36,12 +41,12 @@ impl SPos {
 }
 
 /// Creates the visual representation of a field, split into 3 lines
-fn field_strs(field: &Option<Piece>) -> [String; 3] {
+fn field_strs(field: Option<Piece>) -> [String; 3] {
 	if let Some(Piece { big, dark, round, flat }) = field {
-		let d = if *dark  { color::Fg(color::Red).to_string() } else { "".into() };
-		let (rl,rr) = if *round { ("(",")") } else { ("|","|") };
-		let f1 = if *flat  { "---" } else { "\\ /" };
-		let f2 = if *flat  { "   " } else { " O "  };
+		let d = if dark  { color::Fg(color::Red).to_string() } else { "".into() };
+		let (rl,rr) = if round { ("(",")") } else { ("|","|") };
+		let f1 = if flat  { "---" } else { "\\ /" };
+		let f2 = if flat  { "   " } else { " O "  };
 		let reset = color::Fg(color::Reset).to_string() + style::Reset.as_ref();
 
 		// (\ /) (---) |---| |\ /|
@@ -54,7 +59,7 @@ fn field_strs(field: &Option<Piece>) -> [String; 3] {
 		let base2 = format!("{}{}   {}{}", d, rl,     rr, reset);
 		let empty = "     ".into();
 
-		if *big {
+		if big {
 			[roof,base1,base2]
 		} else {
 			[empty,roof,base1]
@@ -106,7 +111,7 @@ fn draw_h_delim<W: Write>(mut out: W, y: u16, curr: BPos) -> io::Result<()> {
 pub fn draw_board<W: Write>(mut out: W, pos: SPos, board: &Board, curr: BPos, main: bool) -> io::Result<()> {
 	let v_border = if main { "║" } else { " " }; // vertical border
 
-	write!(out, "{}", pos.as_goto())?;
+	write!(out, "{}", pos.to_goto())?;
 
 	if main {
 		write!(out, "╔════A═════B═════C═════D════╗")?;
@@ -115,12 +120,12 @@ pub fn draw_board<W: Write>(mut out: W, pos: SPos, board: &Board, curr: BPos, ma
 	}
 
 	for y in 0..4 {
-		write!(out, "{}{} ", pos.translated(0,4*y+1).as_goto(), v_border)?;
+		write!(out, "{}{} ", pos.translated(0,4*y+1).to_goto(), v_border)?;
 		draw_h_delim(&mut out, y, curr)?;
 		write!(out, " {}", v_border)?;
 
 		for rows in 0..3 {
-			write!(out, "{}", pos.translated(0,4*y+rows+2).as_goto())?;
+			write!(out, "{}", pos.translated(0,4*y+rows+2).to_goto())?;
 			// draw big border or line number
 			if rows == 1 {
 				write!(out, "{} ", 4-y)?;
@@ -136,7 +141,7 @@ pub fn draw_board<W: Write>(mut out: W, pos: SPos, board: &Board, curr: BPos, ma
 				}
 
 				// cell content
-				write!(out, "{}", field_strs(&board.0[y as usize][x as usize])[rows as usize])?;
+				write!(out, "{}", field_strs(board.0[y as usize][x as usize])[rows as usize])?;
 
 				// right-most cell border
 				if x == 3 {
@@ -156,25 +161,25 @@ pub fn draw_board<W: Write>(mut out: W, pos: SPos, board: &Board, curr: BPos, ma
 			}
 		}
 	}
-	write!(out, "{}{} ", pos.translated(0,4*4+1).as_goto(), v_border)?;
+	write!(out, "{}{} ", pos.translated(0,4*4+1).to_goto(), v_border)?;
 	draw_h_delim(&mut out, 4, curr)?;
 	if main {
-		write!(out, " ║{}╚════A═════B═════C═════D════╝", pos.translated(0,4*4+2).as_goto())?;
+		write!(out, " ║{}╚════A═════B═════C═════D════╝", pos.translated(0,4*4+2).to_goto())?;
 	} else {
-		write!(out, "{}     A     B     C     D", pos.translated(0,4*4+2).as_goto())?;
+		write!(out, "{}     A     B     C     D", pos.translated(0,4*4+2).to_goto())?;
 	}
 
 	out.flush()
 }
 
 /// Draw a small box to show which piece is currently selected
-pub fn draw_selected_piece<W: Write>(mut out: W, pos: SPos, piece: &Option<Piece>) -> io::Result<()> {
-	write!(out, "{}┌PLACE┐", pos.as_goto())?;
+pub fn draw_selected_piece<W: Write>(mut out: W, pos: SPos, piece: Option<Piece>) -> io::Result<()> {
+	write!(out, "{}┌PLACE┐", pos.to_goto())?;
 	let piece_strs = field_strs(piece);
 	for row in 0..3 {
-		write!(out, "{}│{}│", pos.translated(0,row+1).as_goto(), piece_strs[row as usize])?;
+		write!(out, "{}│{}│", pos.translated(0,row+1).to_goto(), piece_strs[row as usize])?;
 	}
-	write!(out, "{}└─────┘", pos.translated(0,4).as_goto())?;
+	write!(out, "{}└─────┘", pos.translated(0,4).to_goto())?;
 	out.flush()
 }
 
@@ -182,6 +187,6 @@ pub fn draw_selected_piece<W: Write>(mut out: W, pos: SPos, piece: &Option<Piece
 /// label shouldn't be wider thatn total_width
 pub fn draw_label<W: Write>(mut out: W, pos: SPos, total_width: u16, label: &str) -> io::Result<()> {
 	let offset = (total_width / 2) - (label.len() as u16 / 2);
-	write!(out, "{}{}", pos.translated(offset,0).as_goto(), label)?;
+	write!(out, "{}{}", pos.translated(offset,0).to_goto(), label)?;
 	out.flush()
 }

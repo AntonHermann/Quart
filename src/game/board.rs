@@ -5,16 +5,25 @@ use std::{
 
 /// A position on the board
 #[derive(PartialEq, Eq, Clone, Copy)]
-pub struct BPos { pub x: u16, pub y: u16 }
+pub struct BPos {
+	/// The x coordinate of this [`BPos`] (left to right)
+	pub x: u16,
+	/// The y coordinate of this [`BPos`] (top to bottom)
+	pub y: u16,
+}
 impl BPos {
+	/// Create a new new Board Position struct
 	pub fn new(x: u16, y: u16) -> Self {
 		Self { x, y }
 	}
+	/// Create an "invalid" BPos
+	/// Currently used to disable showing selection borders on inactive boards
 	pub fn invalid() -> Self {
 		// Self { x: std::u16::MAX, y: std::u16::MAX }
 		Self { x: 99, y: 99 }
 	}
-	pub fn _is_invalid(&self) -> bool {
+	/// Check if this BPos is marked as invalid
+	pub fn _is_invalid(self) -> bool {
 		// self.x == std::u16::MAX && self.y == std::u16::MAX
 		self.x == 99 && self.y == 99
 	}
@@ -29,12 +38,16 @@ impl fmt::Debug for BPos {
 	}
 }
 
-/// One field on a game board
+/// One game piece, with 4 distinctive properties
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub struct Piece {
+	/// Big or small
 	pub big: bool,
+	/// Dark or light
 	pub dark: bool,
+	/// Round or straight
 	pub round: bool,
+	/// Flat on top or with a hole
 	pub flat: bool,
 }
 impl fmt::Debug for Piece {
@@ -85,7 +98,8 @@ impl Board {
 
 	/// Check for Game Over condition
 	/// (at least 1 property has to be equal on all 4 fields of a row, column or diagonal)
-	pub fn check(&self) -> bool {
+	/// Returns `Some(msg)` for game over, `None` otherwise
+	pub fn check(&self) -> Option<String> {
 		// check all rows ...
 		let mut rows: Vec<Vec<BPos>> = Vec::new();
 		for y in 0..4 {
@@ -108,13 +122,24 @@ impl Board {
 		log::trace!("diag: {:?}", diags);
 
 		// combine the 3 iterators
-		let all = rows.into_iter().chain(cols.into_iter()).chain(diags.into_iter());
+		let mut all = rows.into_iter().chain(cols.into_iter()).chain(diags.into_iter());
 
 		// So far, we have an iterator of vectors of positions, now we turn
 		// it into an iterator of vectors of fields (Option<Piece>)
-		all.map(|v: Vec<BPos>| v.into_iter().map(|pos| self[pos].clone()).collect())
-		   .inspect(|v: &Vec<Option<Piece>>| { log::trace!("{:?}", v) })
-		   .any(|v: Vec<Option<Piece>>| check_fields(&v))
+		let res = all.try_for_each(|v: Vec<BPos>| -> Result<(), String> {
+			let fields: Vec<Option<Piece>> = v.iter().map(|pos| self[*pos]).collect();
+			if check_fields(&fields) {
+				Err(format!("{:?}", v))
+			} else {
+				Ok(())
+			}
+		});
+		// We can only short-circuit `try_for_each` via `Err`, so repack it
+		if let Err(msg) = res {
+			Some(msg)
+		} else {
+			None
+		}
 	}
 }
 
