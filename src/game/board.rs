@@ -1,7 +1,10 @@
-use std::ops::{Index, IndexMut};
+use std::{
+	ops::{Index, IndexMut},
+	fmt,
+};
 
 /// A position on the board
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub struct BPos { pub x: u16, pub y: u16 }
 impl BPos {
 	pub fn new(x: u16, y: u16) -> Self {
@@ -16,14 +19,37 @@ impl BPos {
 		self.x == 99 && self.y == 99
 	}
 }
+impl fmt::Debug for BPos {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		if f.alternate() {
+			write!(f, "BPos{{x:{},y:{}}}", self.x, self.y)
+		} else {
+			write!(f, "BP({},{})", self.x, self.y)
+		}
+	}
+}
 
 /// One field on a game board
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub struct Piece {
 	pub big: bool,
 	pub dark: bool,
 	pub round: bool,
 	pub flat: bool,
+}
+impl fmt::Debug for Piece {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		let Piece { big, dark, round, flat } = self;
+		if f.alternate() {
+			write!(f, "Piece{{big:{},dark:{},round:{},flat:{}}}",big,dark,round,flat)
+		} else {
+			let b_str = if *big { "B" } else { "b" };
+			let d_str = if *big { "D" } else { "d" };
+			let r_str = if *big { "R" } else { "r" };
+			let f_str = if *big { "F" } else { "f" };
+			write!(f, "P{{{}{}{}{}}}",b_str,d_str,r_str,f_str)
+		}
+	}
 }
 
 /// A game board (array of rows)
@@ -95,15 +121,17 @@ impl Board {
 /// Check the first 4 fields whether they satisfy the conditions
 /// (at least 1 property has to be equal on all 4)
 fn check_fields(fields: &[Option<Piece>]) -> bool {
+	// Insted of a Vector of Options, Option allows us to collect into a
+	// Option of Vec instead, being None if one of the elements was None (short-circuit)
 	let first4: Option<Vec<Piece>> = fields.iter().take(4).cloned().collect();
 	if let Some(pieces) = first4 {
 		let mut equal = (true,true,true,true);
 		let first = &pieces[0];
 		for p in &pieces[1..] {
-			equal.0 &= first.big == p.big;
-			equal.1 &= first.dark == p.dark;
+			equal.0 &= first.big   == p.big;
+			equal.1 &= first.dark  == p.dark;
 			equal.2 &= first.round == p.round;
-			equal.3 &= first.flat == p.flat;
+			equal.3 &= first.flat  == p.flat;
 		}
 		equal.0 || equal.1 || equal.2 || equal.3
 	} else {

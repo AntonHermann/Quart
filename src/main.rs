@@ -19,11 +19,12 @@ pub use self::game::{
 };
 
 fn main() -> io::Result<()> {
-	flexi_logger::Logger::with_env_or_str("info")
+	// FIXME: when used outside of this dir, the log files are around everywhere!
+	flexi_logger::Logger::with_env_or_str("warn")
 		.log_to_file()
 		.directory("logs")
 		.create_symlink("log.log")
-		.format(flexi_logger::opt_format)
+		.format(flexi_logger::default_format)
 		.start().unwrap();
 
 	// prepare input/output
