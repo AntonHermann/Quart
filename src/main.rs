@@ -79,7 +79,7 @@ fn main() -> io::Result<()> {
 	if game.state == GameOver {
 		println!("+++ GAME OVER +++");
 		println!("Player {} lost", game.player_turn);
-		println!("{}", game.game_over_msg.unwrap_or_default());
+		println!("{:?}", game.game_over_info);
 	}
 	
 	Ok(())

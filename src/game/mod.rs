@@ -29,7 +29,7 @@ pub struct Game {
 	/// If there was a piece selected, it will be stored here
 	pub selected_piece: Option<Piece>,
 	/// In case of Game Over, this contains a description
-	pub game_over_msg: Option<String>,
+	pub game_over_info: Option<GameOverInfo>,
 }
 impl Game {
 	/// Create a new `Game`
@@ -41,7 +41,7 @@ impl Game {
 			pieces_board: Board::full(),
 			cursor_pos: BPos::new(0,0),
 			selected_piece: None,
-			game_over_msg: None,
+			game_over_info: None,
 		}
 	}
 	/// Move the cursor position by some given deltas
@@ -80,9 +80,9 @@ impl Game {
 	/// Check if the game is over (delegate from main_board)
 	/// Returns true on GameOver
 	pub fn check(&mut self) -> bool {
-		if let Some(msg) = self.main_board.check() {
+		if let Some(info) = self.main_board.check() {
 			self.state = GameState::GameOver;
-			self.game_over_msg = Some(msg);
+			self.game_over_info = Some(info);
 			true
 		} else {
 			false

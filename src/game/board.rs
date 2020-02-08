@@ -99,7 +99,7 @@ impl Board {
 	/// Check for Game Over condition
 	/// (at least 1 property has to be equal on all 4 fields of a row, column or diagonal)
 	/// Returns `Some(msg)` for game over, `None` otherwise
-	pub fn check(&self) -> Option<String> {
+	pub fn check(&self) -> Option<GameOverInfo> {
 		// check all rows ...
 		let mut rows: Vec<Vec<BPos>> = Vec::new();
 		for y in 0..4 {
@@ -126,17 +126,21 @@ impl Board {
 
 		// So far, we have an iterator of vectors of positions, now we turn
 		// it into an iterator of vectors of fields (Option<Piece>)
-		let res = all.try_for_each(|v: Vec<BPos>| -> Result<(), String> {
+		let res = all.try_for_each(|v: Vec<BPos>| -> Result<(), GameOverInfo> {
 			let fields: Vec<Option<Piece>> = v.iter().map(|pos| self[*pos]).collect();
-			if check_fields(&fields) {
-				Err(format!("{:?}", v))
+			let chk = check_fields(&fields);
+			if let Some(property) = chk {
+				Err(GameOverInfo {
+					positions: v,
+					property: property,
+				})
 			} else {
 				Ok(())
 			}
 		});
 		// We can only short-circuit `try_for_each` via `Err`, so repack it
-		if let Err(msg) = res {
-			Some(msg)
+		if let Err(goi) = res {
+			Some(goi)
 		} else {
 			None
 		}
@@ -145,7 +149,8 @@ impl Board {
 
 /// Check the first 4 fields whether they satisfy the conditions
 /// (at least 1 property has to be equal on all 4)
-fn check_fields(fields: &[Option<Piece>]) -> bool {
+/// Returns None if no property matched and Some if at least one matched
+fn check_fields(fields: &[Option<Piece>]) -> Option<String> {
 	// Insted of a Vector of Options, Option allows us to collect into a
 	// Option of Vec instead, being None if one of the elements was None (short-circuit)
 	let first4: Option<Vec<Piece>> = fields.iter().take(4).cloned().collect();
@@ -158,11 +163,31 @@ fn check_fields(fields: &[Option<Piece>]) -> bool {
 			equal.2 &= first.round == p.round;
 			equal.3 &= first.flat  == p.flat;
 		}
-		equal.0 || equal.1 || equal.2 || equal.3
+		if equal.0 {
+			Some("Size".into())
+		} else if equal.1 {
+			Some("Color".into())
+		} else if equal.2 {
+			Some("Shape".into())
+		} else if equal.3 {
+			Some("Top".into()) // TOOD: find better name
+		} else {
+			None
+		}
+		// equal.0 || equal.1 || equal.2 || equal.3
 	} else {
 		// at least one of the cells was empty
-		false
+		None
 	}
+}
+
+/// Details to why the game is over
+#[derive(Debug)]
+pub struct GameOverInfo {
+	/// Positions of the matching pieces
+	pub positions: Vec<BPos>,
+	/// What property they had in common
+	pub property: String,
 }
 
 #[allow(non_snake_case)]
