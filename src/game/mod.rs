@@ -44,6 +44,10 @@ impl Game {
 			game_over_info: None,
 		}
 	}
+	/// Whether the game is over
+	pub fn is_over(&self) -> bool {
+		self.state == GameState::GameOver
+	}
 	/// Move the cursor position by some given deltas
 	pub fn move_cursor(&mut self, dx: i32, dy: i32) {
 		self.cursor_pos.x = (self.cursor_pos.x as i32 + 4 + dx).abs() as u16 % 4;
@@ -74,7 +78,7 @@ impl Game {
 					self.state = GameState::SelectPiece;
 				}
 			},
-			_ => {}, // FIXME:
+			GameState::GameOver => {}
 		}
 	}
 	/// Check if the game is over (delegate from main_board)

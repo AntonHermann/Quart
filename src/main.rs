@@ -36,7 +36,7 @@ fn main() -> io::Result<()> {
 	let stdout = io::stdout().into_raw_mode()?;
 	let mut stdout = AlternateScreen::from(stdout);
 	let stdin = io::stdin();
-	write!(stdout, "{}{}{}", cursor::Hide, cursor::Goto(2,2), clear::All)?;
+	write!(stdout, "{}{}", cursor::Goto(2,2), clear::All)?;
 
 	// game state
 	let mut game = Game::new();
@@ -64,7 +64,7 @@ fn main() -> io::Result<()> {
 
 		if game.check() {
 			// GAME OVER
-			break;
+			// break;
 		}
 
 		// redraw boards and piece preview

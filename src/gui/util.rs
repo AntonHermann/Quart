@@ -168,8 +168,7 @@ pub fn draw_board<W: Write>(mut out: W, pos: SPos, board: &Board, curr: BPos, ma
 	} else {
 		write!(out, "{}     A     B     C     D", pos.translated(0,4*4+2).to_goto())?;
 	}
-
-	out.flush()
+	Ok(())
 }
 
 /// Draw a small box to show which piece is currently selected
@@ -179,14 +178,12 @@ pub fn draw_selected_piece<W: Write>(mut out: W, pos: SPos, piece: Option<Piece>
 	for row in 0..3 {
 		write!(out, "{}│{}│", pos.translated(0,row+1).to_goto(), piece_strs[row as usize])?;
 	}
-	write!(out, "{}└─────┘", pos.translated(0,4).to_goto())?;
-	out.flush()
+	write!(out, "{}└─────┘", pos.translated(0,4).to_goto())
 }
 
 /// Draw a label, with origin at x,y, such that is is centered inside the given width
 /// label shouldn't be wider thatn total_width
 pub fn draw_label<W: Write>(mut out: W, pos: SPos, total_width: u16, label: &str) -> io::Result<()> {
 	let offset = (total_width / 2) - (label.len() as u16 / 2);
-	write!(out, "{}{}", pos.translated(offset,0).to_goto(), label)?;
-	out.flush()
+	write!(out, "{}{}", pos.translated(offset,0).to_goto(), label)
 }
