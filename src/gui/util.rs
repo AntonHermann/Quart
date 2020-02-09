@@ -60,7 +60,7 @@ fn field_strs(field: Option<Piece>) -> [String; 3] {
         let (rl, rr) = if round { ("(", ")") } else { ("|", "|") };
         let f1 = if flat { "---" } else { "\\ /" };
         let f2 = if flat { "   " } else { " O " };
-        let reset = color::Fg(color::Reset).to_string() + style::Reset.as_ref();
+        let reset = color::Fg(color::Reset).to_string();
 
         // (\ /) (---) |---| |\ /|
         // ( O ) (   ) |   | | O | (\ /) (---) |---| |\ /|
@@ -234,7 +234,15 @@ pub fn draw_board<W: Write>(
 
     for y in 0..4 {
 		for x in 0..4 {
+			let p = BPos::new(x,y);
+			let highlighted = highlights.contains(&p);
+			if highlighted {
+	            write!(out, "{}", style::Italic)?;
+			}
 			draw_piece(&mut out, pos.translated(3 + 6*x, 2 + 4*y), board[(x,y)])?;
+			if highlighted {
+	            write!(out, "{}", style::Reset)?;
+			}
 		}
     }
     write!(out, "{}{} ", pos.to_goto_t(0, 4 * 4 + 1), v_border)?;

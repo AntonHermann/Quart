@@ -81,6 +81,7 @@ fn run() -> io::Result<()> {
 
     write!(stdout, "{}", screen::ToMainScreen)?;
     stdout.flush()?;
+    std::mem::drop(stdout);
 
 	log::info!("End, {:?}", game);
     if game.state == GameOver {
