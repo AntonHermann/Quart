@@ -16,17 +16,6 @@ impl BPos {
     pub fn new(x: u16, y: u16) -> Self {
         Self { x, y }
     }
-    /// Create an "invalid" BPos
-    /// Currently used to disable showing selection borders on inactive boards
-    pub fn invalid() -> Self {
-        // Self { x: std::u16::MAX, y: std::u16::MAX }
-        Self { x: 99, y: 99 }
-    }
-    /// Check if this BPos is marked as invalid
-    pub fn _is_invalid(self) -> bool {
-        // self.x == std::u16::MAX && self.y == std::u16::MAX
-        self.x == 99 && self.y == 99
-    }
 }
 impl fmt::Debug for BPos {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

@@ -2,11 +2,6 @@ use crate::{BPos, Board, Piece};
 use std::io::{self, Write};
 use termion::{color, cursor::Goto, style};
 
-/// The horizontal line used for drawing the board
-const LINE_H: &str = "─────";
-/// The horizontal line used for drawing the board - selected
-const LINE_H_S: &str = "═════";
-
 /// A position on the screen
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct SPos {
@@ -67,10 +62,10 @@ fn field_strs(field: Option<Piece>) -> [String; 3] {
         // (   ) (   ) |   | |   | ( O ) (   ) |   | | O |
         //  BRf   BRF   BrF   Brf   bRf   bRF   brF   brf
 
-        let roof = format!("{}{}{}{}{}", d, rl, f1, rr, reset);
+        let roof  = format!("{}{}{}{}{}", d, rl, f1, rr, reset);
         let base1 = format!("{}{}{}{}{}", d, rl, f2, rr, reset);
         let base2 = format!("{}{}   {}{}", d, rl, rr, reset);
-        let empty = "     ".into();
+        let empty = format!("{}     {}", d, reset);
 
         if big {
             [roof, base1, base2]
@@ -80,85 +75,6 @@ fn field_strs(field: Option<Piece>) -> [String; 3] {
     } else {
         ["     ".to_owned(), "     ".to_owned(), "     ".to_owned()]
     }
-}
-
-/// Draw a horizontal delimiter, possibly highlighting the current fields border
-fn draw_h_delim<W: Write>(mut out: W, y: u16, cursor: BPos) -> io::Result<()> {
-	log::trace!("draw_h_delim");
-    // mark border if cell above or below is selected
-    let ysel = cursor.y == y || cursor.y + 1 == y;
-
-	let xsel = cursor.x == 0;
-    // left corner
-    if ysel && xsel {
-        write!(out, "{}", style::Invert)?
-    }
-    if ysel && xsel {
-	    write!(out, "{}", match y {
-	        0 => "╔",
-	        4 => "╚",
-	        _ => "╠",
-	    })?;
-    } else {
-	    write!(out, "{}", match y {
-            0 => "┌",
-            4 => "└",
-            _ => "├",
-        })?;
-    }
-
-    for x in 0..3 {
-        // line segment
-	    if ysel && cursor.x == x {
-	        write!(out, "{}", LINE_H_S)?;
-	    } else {
-	        write!(out, "{}", LINE_H)?;
-	    }
-
-        // inner junction
-        if ysel && cursor.x == x + 1 {
-            write!(out, "{}", style::Invert)?
-        }
-        if ysel && (cursor.x == x || cursor.x == x + 1) {
-	        write!(out, "{}", match y {
-	            0 => "╦",
-	            4 => "╩",
-	            _ => "╬",
-	        })?;
-        } else {
-	        write!(out, "{}", match y {
-                0 => "┬",
-                4 => "┴",
-                _ => "┼",
-            })?;
-        }
-        if ysel && cursor.x == x {
-            write!(out, "{}", style::Reset)?
-        }
-    }
-    if ysel && cursor.x == 3 {
-	    write!(out, "{}", LINE_H_S)?;
-    } else {
-	    write!(out, "{}", LINE_H)?;
-    }
-
-    // right corner
-    if ysel&& cursor.x == 3 {
-	    write!(out, "{}", match y {
-	        0 => "╗",
-	        4 => "╝",
-	        _ => "╣",
-	    })?;
-    } else {
-	    write!(out, "{}", match y {
-            0 => "┐",
-            4 => "┘",
-            _ => "┤",
-        })?;
-    }
- 	write!(out, "{}", style::Reset)?;
- 	log::trace!("draw_h_delim: end");
- 	Ok(())
 }
 
 /// Draw a board at the current position, with `cursor` as selected cells.
@@ -173,65 +89,50 @@ pub fn draw_board<W: Write>(
     highlights: Vec<BPos>,
 ) -> io::Result<()> {
 	log::trace!("draw_board");
-    let cursor = if sel { cursor } else { BPos::invalid() };
 
-    let v_border = if main { "║" } else { " " }; // vertical border
-
-    write!(out, "{}", pos.to_goto())?;
-
+	// draw border
     if main {
-        write!(out, "╔════A═════B═════C═════D════╗")?;
-    } else {
-        write!(out, "     A     B     C     D")?;
+        write!(out, "{}╔═══════════════════════════╗", pos.to_goto())?;
+        write!(out, "{}╚═══════════════════════════╝", pos.to_goto_t(0, 18))?;
+    }
+    // vertical border, gets drawn together with grid
+    let v_border = if main { "║" } else { " " };
+
+	// draw grid
+    for row in 0..=4*4 {
+        write!(out, "{}", pos.to_goto_t(0, row + 1))?;
+        let s = if row == 0 {
+			"┌─────┬─────┬─────┬─────┐"
+        } else if row == 4*4 {
+			"└─────┴─────┴─────┴─────┘"
+        } else if row % 4 == 0 {
+			"├─────┼─────┼─────┼─────┤"
+        } else {
+	        "│     │     │     │     │"
+        };
+        write!(out, "{b} {} {b}", s, b=v_border)?;
     }
 
-    for y in 0..4 {
-        write!(
-            out,
-            "{}{} ",
-            pos.to_goto_t(0, 4 * y + 1),
-            v_border
-        )?;
-        draw_h_delim(&mut out, y, cursor)?;
-        write!(out, " {}", v_border)?;
+    // draw line numbers
+    let letters = ['A','B','C','D'];
+    for i in 0..4 {
+        write!(out, "{}{}", pos.to_goto_t( 0, 4 * i + 3), 4 - i)?; // left
+        write!(out, "{}{}", pos.to_goto_t(28, 4 * i + 3), 4 - i)?; // right
+        write!(out, "{}{}", pos.to_goto_t(6 * i + 5,  0), letters[i as usize])?; // top
+        write!(out, "{}{}", pos.to_goto_t(6 * i + 5, 18), letters[i as usize])?; // bottom
+	}
 
-        for rows in 0..3 {
-            write!(out, "{}", pos.to_goto_t(0, 4 * y + rows + 2))?;
-            // draw big border or line number
-            if rows == 1 {
-                write!(out, "{} ", 4 - y)?;
-            } else {
-                write!(out, "{} ", v_border)?;
-            }
-            for x in 0..4 {
-                // left/middle cell border
-                if cursor.y == y && (cursor.x == x || cursor.x + 1 == x) {
-                    write!(out, "{}║{}", style::Invert, style::Reset)?;
-                } else {
-                    write!(out, "│")?;
-                }
+	// draw cursor
+	if sel {
+		let cursor_pos = pos.translated(2+6*cursor.x, 4*cursor.y+1);
+		write!(out, "{}{}╔═════╗", style::Invert, cursor_pos.to_goto())?;
+		for i in 1..4 {
+			write!(out, "{}║     ║", cursor_pos.to_goto_t(0, i))?;
+		}
+		write!(out, "{}╚═════╝{}", cursor_pos.to_goto_t(0,4), style::Reset)?;
+	}
 
-                write!(out, "     ")?;
-
-                // right-most cell border
-                if x == 3 {
-                    if (cursor.x, cursor.y) == (x, y) {
-                        write!(out, "{}║{}", style::Invert, style::Reset)?;
-                    } else {
-                        write!(out, "│")?;
-                    }
-
-                    // draw big border or line number
-                    if rows == 1 {
-                        write!(out, " {}", 4 - y)?;
-                    } else {
-                        write!(out, " {}", v_border)?;
-                    }
-                }
-            }
-        }
-    }
-
+	// draw pieces
     for y in 0..4 {
 		for x in 0..4 {
 			let p = BPos::new(x,y);
@@ -239,19 +140,13 @@ pub fn draw_board<W: Write>(
 			if highlighted {
 	            write!(out, "{}", style::Italic)?;
 			}
-			draw_piece(&mut out, pos.translated(3 + 6*x, 2 + 4*y), board[(x,y)])?;
+			draw_piece(&mut out, pos.translated(3+6*x, 2+4*y), board[p])?;
 			if highlighted {
 	            write!(out, "{}", style::Reset)?;
 			}
 		}
     }
-    write!(out, "{}{} ", pos.to_goto_t(0, 4 * 4 + 1), v_border)?;
-    draw_h_delim(&mut out, 4, cursor)?;
-    if main {
-        write!(out, " ║{}╚════A═════B═════C═════D════╝", pos.to_goto_t(0, 4 * 4 + 2))?;
-    } else {
-        write!(out, "{}     A     B     C     D", pos.to_goto_t(0, 4 * 4 + 2))?;
-    }
+
     log::trace!("draw_board: end");
     Ok(())
 }
