@@ -36,6 +36,11 @@ pub fn draw_gui<W: Write>(mut out: W, game: &Game, layout: Option<&Layout>) -> i
     write!(out, "{}", clear::All)?;
 
     let main_focus = game.state == PlacePiece || game.state == GameOver;
+    let highlights = if let Some(goi) = game.game_over_info.as_ref() {
+		goi.positions.clone()
+    } else {
+	    Vec::new()
+    };
 
     draw_board(
         &mut out,
@@ -44,6 +49,7 @@ pub fn draw_gui<W: Write>(mut out: W, game: &Game, layout: Option<&Layout>) -> i
         game.cursor_pos,
         main_focus,
         true,
+        highlights,
     )?;
 
     draw_board(
@@ -53,6 +59,7 @@ pub fn draw_gui<W: Write>(mut out: W, game: &Game, layout: Option<&Layout>) -> i
         game.cursor_pos,
         !main_focus,
         false,
+        Vec::new(),
     )?;
 
     let label_pos = layout.pieces_board.translated_i32(2, -1);

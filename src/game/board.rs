@@ -88,6 +88,17 @@ impl IndexMut<BPos> for Board {
         &mut self.0[pos.y as usize][pos.x as usize]
     }
 }
+impl Index<(u16,u16)> for Board {
+    type Output = Option<Piece>;
+    fn index(&self, (x,y): (u16,u16)) -> &Self::Output {
+        &self.0[y as usize][x as usize]
+    }
+}
+impl IndexMut<(u16,u16)> for Board {
+    fn index_mut(&mut self, (x,y): (u16,u16)) -> &mut Self::Output {
+        &mut self.0[y as usize][x as usize]
+    }
+}
 impl Board {
     /// create a board with all different stones on it
     pub fn full() -> Board {

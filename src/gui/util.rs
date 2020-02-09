@@ -35,7 +35,7 @@ impl SPos {
     }
     /// Creates a copy of self, translated by `dx`/`dy`.
     /// Here `dx`, `dy` are unsigned, so only steps in down/right direction are possible
-    pub fn _translated(self, dx: u16, dy: u16) -> Self {
+    pub fn translated(self, dx: u16, dy: u16) -> Self {
         Self {
             x: self.x + dx,
             y: self.y + dy,
@@ -170,6 +170,7 @@ pub fn draw_board<W: Write>(
     cursor: BPos,
     sel: bool,
     main: bool,
+    highlights: Vec<BPos>,
 ) -> io::Result<()> {
 	log::trace!("draw_board");
     let cursor = if sel { cursor } else { BPos::invalid() };
@@ -210,12 +211,7 @@ pub fn draw_board<W: Write>(
                     write!(out, "│")?;
                 }
 
-                // cell content
-                write!(
-                    out,
-                    "{}",
-                    field_strs(board.0[y as usize][x as usize])[rows as usize]
-                )?;
+                write!(out, "     ")?;
 
                 // right-most cell border
                 if x == 3 {
@@ -234,6 +230,12 @@ pub fn draw_board<W: Write>(
                 }
             }
         }
+    }
+
+    for y in 0..4 {
+		for x in 0..4 {
+			draw_piece(&mut out, pos.translated(3 + 6*x, 2 + 4*y), board[(x,y)])?;
+		}
     }
     write!(out, "{}{} ", pos.to_goto_t(0, 4 * 4 + 1), v_border)?;
     draw_h_delim(&mut out, 4, cursor)?;
@@ -254,12 +256,29 @@ pub fn draw_selected_piece<W: Write>(
 ) -> io::Result<()> {
 	log::trace!("draw_selected_piece");
     write!(out, "{}┌PLACE┐", pos.to_goto())?;
-    let piece_strs = field_strs(piece);
+    // let piece_strs = field_strs(piece);
     for row in 0..3 {
-        write!(out, "{}│{}│", pos.to_goto_t(0, row + 1), piece_strs[row as usize])?;
+        write!(out, "{}│     │", pos.to_goto_t(0, row + 1))?;
     }
+    draw_piece(&mut out, pos.translated(1,1), piece)?;
     write!(out, "{}└─────┘", pos.to_goto_t(0, 4))?;
     log::trace!("draw_selected_piece: end");
+    Ok(())
+}
+
+/// Draw a piece at the given location
+pub fn draw_piece<W: Write>(
+    mut out: W,
+    pos: SPos,
+    piece: Option<Piece>,
+) -> io::Result<()> {
+	log::trace!("draw_piece");
+
+    write!(out, "{}", pos.to_goto())?;
+    let piece_strs = field_strs(piece);
+    for row in 0..3 {
+        write!(out, "{}{}", pos.to_goto_t(0, row), piece_strs[row as usize])?;
+    }
     Ok(())
 }
 
