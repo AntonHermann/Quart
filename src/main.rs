@@ -35,6 +35,13 @@ fn run() -> io::Result<()> {
     let stdin = io::stdin();
     write!(stdout, "{}{}{}", screen::ToAlternateScreen, cursor::Goto(2, 2), clear::All)?;
 
+    // Panicking shows weird output when in raw mode -> at least log panic msg
+    let default_panic_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+		log::error!("{}", info);
+		default_panic_hook(info);
+    }));
+
     // game state
     let mut game = Game::new();
     log::debug!("Created game");
