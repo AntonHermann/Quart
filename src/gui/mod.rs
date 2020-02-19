@@ -2,7 +2,7 @@ mod util;
 // mod old; // some old, way too complex functions
 
 pub use self::util::*;
-use crate::game::{Game, GameState::*};
+use crate::game::{Game, GameState::*, BPos};
 use std::io::{self, Write};
 use termion::{clear, cursor};
 
@@ -30,7 +30,7 @@ impl Layout {
     }
 }
 /// This function brings the whole game to live. Here the game scene is drawn
-pub fn draw_gui<W: Write>(mut out: W, game: &Game, layout: Option<&Layout>) -> io::Result<()> {
+pub fn draw<W: Write>(mut out: W, game: &Game, layout: Option<&Layout>) -> io::Result<()> {
 	log::trace!("draw_gui");
     let layout = layout.unwrap_or(&LAYOUT_WIDE);
 
@@ -89,4 +89,31 @@ pub fn draw_gui<W: Write>(mut out: W, game: &Game, layout: Option<&Layout>) -> i
 
 	log::trace!("draw_gui: end");
     Ok(())
+}
+
+/// Returns the BoardPos sfKLJSFLKJSFLKDSJF:LKDSJF:LSD
+pub fn screen_to_bpos(game: &Game, layout: Option<&Layout>, x: u16, y: u16) -> Option<BPos> {
+    let layout = layout.unwrap_or(&LAYOUT_WIDE);
+	let offset = match game.state {
+		PlacePiece => layout.main_board,
+		SelectPiece => layout.pieces_board,
+		GameOver => return None,
+	};
+	// the space between offset and top-left of the real field
+	let offset = offset.translated(2,1);
+	if x < offset.x || y < offset.y { return None }
+
+	let mut b_x = (x - offset.x) / 6;
+	let mut b_y = (y - offset.y) / 4;
+
+	// right/bottom edges should still match
+	if x-offset.x == 24 { b_x = 3 }
+	if y-offset.y == 16 { b_y = 3 }
+
+	// field is 4x4 => position should be (0..3)x(0..3)
+	if b_x < 4 && b_y < 4 {
+		Some(BPos::new(b_x, b_y))
+	} else {
+		None
+	}
 }
