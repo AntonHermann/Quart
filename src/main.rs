@@ -8,11 +8,15 @@ mod gui;
 
 use std::io::{self, Write};
 use termion::{
-    clear, cursor, event::Key, input::TermRead, raw::IntoRawMode, screen,
+    clear,
+    cursor,
+    screen,
+    event::*,
+    input::{TermRead, MouseTerminal},
+    raw::IntoRawMode,
 };
 
 use self::game::{board::*, Game, GameState::*};
-use self::gui::*;
 
 fn main() -> io::Result<()> {
 	let res = run();
@@ -22,7 +26,7 @@ fn main() -> io::Result<()> {
 
 fn run() -> io::Result<()> {
     // FIXME: when used outside of this dir, the log files are around everywhere!
-    flexi_logger::Logger::with_env_or_str("trace, quart::game::board=debug")
+    flexi_logger::Logger::with_env_or_str("info, quart::gui=debug")
         .log_to_file()
         .directory("logs")
         .create_symlink("log.log")
@@ -31,7 +35,7 @@ fn run() -> io::Result<()> {
         .unwrap();
 
     // prepare input/output
-    let mut stdout = io::stdout().into_raw_mode()?;
+    let mut stdout = MouseTerminal::from(io::stdout().into_raw_mode()?);
     let stdin = io::stdin();
     write!(stdout, "{}{}{}", screen::ToAlternateScreen, cursor::Goto(2, 2), clear::All)?;
 
@@ -47,25 +51,36 @@ fn run() -> io::Result<()> {
     log::debug!("Created game");
 
     // initial drawing
-    draw_gui(&mut stdout, &game, None)?;
+    gui::draw(&mut stdout, &game, None)?;
 
     // game loop
-    for c in stdin.keys() {
+    for c in stdin.events() {
 	    log::debug!("Key pressed: {:?}", c);
         match c? {
-            Key::Esc | Key::Char('q') => break,
-            Key::Up | Key::Char('k') => game.move_cursor(0, -1),
-            Key::Down | Key::Char('j') => game.move_cursor(0, 1),
-            Key::Left | Key::Char('h') => game.move_cursor(-1, 0),
-            Key::Right | Key::Char('l') => game.move_cursor(1, 0),
-            Key::Char(n) if "abcd".contains(n) => {
-                game.set_cursor_x("abcd".find(n).unwrap() as u16);
-            }
-            Key::Char(n) if "1234".contains(n) => {
-                game.set_cursor_y(3 - "1234".find(n).unwrap() as u16);
-            }
-            Key::Char('\n') => game.enter(),
-            _ => {}
+	        Event::Key(k) => match k {
+	            Key::Esc | Key::Char('q') => break,
+	            Key::Up | Key::Char('k') => game.move_cursor(0, -1),
+	            Key::Down | Key::Char('j') => game.move_cursor(0, 1),
+	            Key::Left | Key::Char('h') => game.move_cursor(-1, 0),
+	            Key::Right | Key::Char('l') => game.move_cursor(1, 0),
+	            Key::Char(n) if "abcd".contains(n) => {
+	                game.set_cursor_x("abcd".find(n).unwrap() as u16);
+	            }
+	            Key::Char(n) if "1234".contains(n) => {
+	                game.set_cursor_y(3 - "1234".find(n).unwrap() as u16);
+	            }
+	            Key::Char('\n') => game.enter(),
+	            _ => {},
+	        },
+	        Event::Mouse(m) => match m {
+				MouseEvent::Press(_,x,y) => {
+					if let Some(bpos) = gui::screen_to_bpos(&game, None, x, y) {
+						game.cursor_pos = bpos;
+					}
+				},
+				_ => continue,
+	        },
+	        _ => continue,
         }
 
         if game.check() {
@@ -75,7 +90,7 @@ fn run() -> io::Result<()> {
         }
 
         // redraw boards and piece preview
-        draw_gui(&mut stdout, &game, None)?;
+        gui::draw(&mut stdout, &game, None)?;
     }
     log::trace!("After game loop");
 

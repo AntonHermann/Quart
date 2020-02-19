@@ -23,9 +23,9 @@ impl SPos {
     }
     /// Creates a copy of self, translated by `dx`/`dy`.
     pub fn translated_i32(self, dx: i32, dy: i32) -> Self {
-        Self {
-            x: (self.x as i32 + dx) as u16,
-            y: (self.y as i32 + dy) as u16,
+        Self { // should never be less than 0
+            x: std::cmp::max(self.x as i32 + dx, 0) as u16,
+            y: std::cmp::max(self.y as i32 + dy, 0) as u16,
         }
     }
     /// Creates a copy of self, translated by `dx`/`dy`.
@@ -138,14 +138,14 @@ pub fn draw_board<W: Write>(
 			let p = BPos::new(x,y);
 			let highlighted = highlights.contains(&p);
 			if highlighted {
-	            write!(out, "{}", style::Italic)?;
+				write!(out, "{}", style::Italic)?;
 			}
 			draw_piece(&mut out, pos.translated(3+6*x, 2+4*y), board[p])?;
 			if highlighted {
-	            write!(out, "{}", style::Reset)?;
+				write!(out, "{}", style::Reset)?;
 			}
 		}
-    }
+	}
 
     log::trace!("draw_board: end");
     Ok(())
