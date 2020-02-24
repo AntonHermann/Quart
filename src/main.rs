@@ -4,7 +4,7 @@
 /// Contains fundamental game structs, game logic
 pub mod game;
 /// Contains the Terminal User Interface
-mod gui;
+pub mod gui;
 
 use std::io;
 use self::game::{board::*, Game, GameState::*};
@@ -39,16 +39,15 @@ fn run() -> io::Result<()> {
     // game loop
     while let Some(event) = gui.poll_event(&game) {
         match event {
-            Event::Exit => break,
-            Event::CursorUp    => game.move_cursor(0, -1),
-            Event::CursorDown  => game.move_cursor(0, 1),
-            Event::CursorLeft  => game.move_cursor(-1, 0),
-            Event::CursorRight => game.move_cursor(1, 0),
-            Event::CursorToX(x) => game.set_cursor_x(x),
-            Event::CursorToY(y) => game.set_cursor_y(y),
-            Event::Enter => game.enter(),
+			Event::Exit 			=> break,
+			Event::CursorUp 		=> game.move_cursor(0, -1),
+			Event::CursorDown 		=> game.move_cursor(0, 1),
+			Event::CursorLeft 		=> game.move_cursor(-1, 0),
+			Event::CursorRight 		=> game.move_cursor(1, 0),
+			Event::CursorToX(x) 	=> game.set_cursor_x(x),
+			Event::CursorToY(y) 	=> game.set_cursor_y(y),
+			Event::Enter 			=> game.enter(),
 			Event::CursorToPos(pos) => game.set_cursor_pos(pos),
-	        // _ => continue,
         }
 
         if game.check() {

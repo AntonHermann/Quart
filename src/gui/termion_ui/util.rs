@@ -3,12 +3,14 @@ use std::io::{self, Write};
 use termion::{color, cursor::Goto, style};
 
 /// A position on the screen
+#[allow(missing_docs)]
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct SPos {
     pub x: u16,
     pub y: u16,
 }
 impl SPos {
+	/// Create new SPos
     pub fn _new(x: u16, y: u16) -> Self {
         Self { x, y }
     }
