@@ -4,19 +4,11 @@
 /// Contains fundamental game structs, game logic
 pub mod game;
 /// Contains the Terminal User Interface
-mod gui;
+pub mod gui;
 
-use std::io::{self, Write};
-use termion::{
-    clear,
-    cursor,
-    screen,
-    event::*,
-    input::{TermRead, MouseTerminal},
-    raw::IntoRawMode,
-};
-
+use std::io;
 use self::game::{board::*, Game, GameState::*};
+use self::gui::{Gui, Event};
 
 fn main() -> io::Result<()> {
 	let res = run();
@@ -34,53 +26,28 @@ fn run() -> io::Result<()> {
         .start()
         .unwrap();
 
-    // prepare input/output
-    let mut stdout = MouseTerminal::from(io::stdout().into_raw_mode()?);
-    let stdin = io::stdin();
-    write!(stdout, "{}{}{}", screen::ToAlternateScreen, cursor::Goto(2, 2), clear::All)?;
-
-    // Panicking shows weird output when in raw mode -> at least log panic msg
-    let default_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(move |info| {
-		log::error!("{}", info);
-		default_panic_hook(info);
-    }));
-
     // game state
     let mut game = Game::new();
     log::debug!("Created game");
 
-    // initial drawing
-    gui::draw(&mut stdout, &game, None)?;
+    let mut gui = gui::create_default()?;
 
+    // initial drawing
+    gui.draw(&game)?;
+
+	// TODO: switch to gui.poll_event() and gui::Event
     // game loop
-    for c in stdin.events() {
-	    log::debug!("Key pressed: {:?}", c);
-        match c? {
-	        Event::Key(k) => match k {
-	            Key::Esc | Key::Char('q') => break,
-	            Key::Up | Key::Char('k') => game.move_cursor(0, -1),
-	            Key::Down | Key::Char('j') => game.move_cursor(0, 1),
-	            Key::Left | Key::Char('h') => game.move_cursor(-1, 0),
-	            Key::Right | Key::Char('l') => game.move_cursor(1, 0),
-	            Key::Char(n) if "abcd".contains(n) => {
-	                game.set_cursor_x("abcd".find(n).unwrap() as u16);
-	            }
-	            Key::Char(n) if "1234".contains(n) => {
-	                game.set_cursor_y(3 - "1234".find(n).unwrap() as u16);
-	            }
-	            Key::Char('\n') => game.enter(),
-	            _ => {},
-	        },
-	        Event::Mouse(m) => match m {
-				MouseEvent::Press(_,x,y) => {
-					if let Some(bpos) = gui::screen_to_bpos(&game, None, x, y) {
-						game.cursor_pos = bpos;
-					}
-				},
-				_ => continue,
-	        },
-	        _ => continue,
+    while let Some(event) = gui.poll_event(&game) {
+        match event {
+			Event::Exit 			=> break,
+			Event::CursorUp 		=> game.move_cursor(0, -1),
+			Event::CursorDown 		=> game.move_cursor(0, 1),
+			Event::CursorLeft 		=> game.move_cursor(-1, 0),
+			Event::CursorRight 		=> game.move_cursor(1, 0),
+			Event::CursorToX(x) 	=> game.set_cursor_x(x),
+			Event::CursorToY(y) 	=> game.set_cursor_y(y),
+			Event::Enter 			=> game.enter(),
+			Event::CursorToPos(pos) => game.set_cursor_pos(pos),
         }
 
         if game.check() {
@@ -90,13 +57,11 @@ fn run() -> io::Result<()> {
         }
 
         // redraw boards and piece preview
-        gui::draw(&mut stdout, &game, None)?;
+        gui.draw(&game)?;
     }
     log::trace!("After game loop");
 
-    write!(stdout, "{}", screen::ToMainScreen)?;
-    stdout.flush()?;
-    std::mem::drop(stdout);
+    std::mem::drop(gui);
 
 	log::info!("End, {:?}", game);
     if game.state == GameOver {

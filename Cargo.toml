@@ -4,10 +4,11 @@ version = "0.1.0"
 authors = ["Anton Hermann <antonoehler@gmx.de>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = ["termion"]
 
 [dependencies]
-termion = "1.5.4"
-# itertools = "0.8.2"
+termion = { version = "1.5.4", optional = true }
 log = "0.4.8"
 flexi_logger = "0.14.8"
+match_cfg = "0.1.0"

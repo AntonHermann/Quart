@@ -62,6 +62,10 @@ impl Game {
     pub fn set_cursor_y(&mut self, y: u16) {
         self.cursor_pos.y = y;
     }
+    /// Set the cursor to a specific position
+    pub fn set_cursor_pos(&mut self, pos: BPos) {
+		self.cursor_pos = pos;
+    }
     /// Perform some action, depending on the game state.
     /// Normally picking up or putting down a piece
     pub fn enter(&mut self) {
