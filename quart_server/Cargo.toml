@@ -1,0 +1,14 @@
+[package]
+name = "quart_server"
+version = "0.1.0"
+authors = ["Anton Hermann <antonoehler@gmx.de>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = "2.0"
+actix-rt = "1.0"
+quart_lib = { path = "../quart_lib" }
+actix-service = "1.0.5"
+futures = "0.3.4"
