@@ -1,13 +1,11 @@
 #![warn(missing_docs)]
 //! Simple board game as TUI
 
-/// Contains fundamental game structs, game logic
-pub mod game;
 /// Contains the Terminal User Interface
 pub mod gui;
 
 use std::io;
-use self::game::{board::*, Game, GameState::*};
+use quart_lib::{board::*, Game, GameState::*};
 use self::gui::{Gui, Event};
 
 fn main() -> io::Result<()> {

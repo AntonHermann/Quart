@@ -6,7 +6,7 @@ mod util;
 
 pub use self::util::*;
 use super::{Gui, Event};
-use crate::game::{Game, GameState::*, BPos};
+use quart_lib::{Game, GameState::*, BPos};
 use std::io::{self, Write};
 use termion::{
     clear,

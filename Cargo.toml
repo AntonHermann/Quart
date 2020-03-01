@@ -1,4 +1,5 @@
 [workspace]
 members = [
 	"quart_lib",
+	"quart_tui",
 ]

@@ -1,3 +1,6 @@
+#![warn(missing_docs)]
+//! Simple board game, game logic
+
 /// Board management, checking for game over condition
 pub mod board;
 
