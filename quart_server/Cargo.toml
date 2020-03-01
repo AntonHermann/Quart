@@ -12,3 +12,5 @@ actix-rt = "1.0"
 quart_lib = { path = "../quart_lib" }
 actix-service = "1.0.5"
 futures = "0.3.4"
+typed-html = "0.2.2"
+listenfd = "0.3"
