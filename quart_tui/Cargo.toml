@@ -6,6 +6,7 @@ edition = "2018"
 
 [features]
 default = ["termion"]
+ai_enemy = ["quart_ai_enemy"]
 
 [dependencies]
 quart_lib = { path = "../quart_lib" }
@@ -13,3 +14,5 @@ termion = { version = "1.5.4", optional = true }
 log = "0.4.8"
 flexi_logger = "0.14.8"
 match_cfg = "0.1.0"
+
+quart_ai_enemy = { path = "../quart_ai_enemy", optional = true }
