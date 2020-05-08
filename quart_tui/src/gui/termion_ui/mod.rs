@@ -93,7 +93,6 @@ fn event_from_termion_event(e: TEvent, ui_state: &UiState) -> Option<Event> {
 	})
 }
 
-
 /// The text above the pieces board
 const PIECES_BOARD_LABEL: &str = "Available Pieces";
 
@@ -167,7 +166,7 @@ fn draw<W: Write>(mut out: W, ui_state: &UiState, layout: Option<&Layout>) -> io
     draw_label(&mut out, layout.status_label, std::cmp::max(25,status_str.len() as u16), &status_str)?;
 
     if ui_state.game.state == PlacePiece {
-        draw_selected_piece(&mut out, layout.curr_piece, ui_state.selected_piece)?;
+        draw_selected_piece(&mut out, layout.curr_piece, ui_state.game.selected_piece)?;
     }
 
 	log::trace!("before goto 0,1");

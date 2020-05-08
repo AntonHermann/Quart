@@ -1,4 +1,4 @@
-use quart_lib::{Game, Board, BPos, GameState, Piece};
+use quart_lib::{Game, Board, BPos, GameState, GameError};
 
 /// Current User Interface State (cursor position, highlighted fields, ...)
 pub struct UiState {
@@ -10,9 +10,6 @@ pub struct UiState {
 
     /// The board where the rest of the pieces is
     pub pieces_board: Board,
-
-    /// If there was a piece selected, it will be stored here
-    pub selected_piece: Option<Piece>,
 }
 
 impl UiState {
@@ -22,7 +19,6 @@ impl UiState {
 			game,
 			cursor_pos: BPos::new(0, 0),
 			pieces_board: Board::full(),
-			selected_piece: None,
 		}
 	}
 	
@@ -49,19 +45,24 @@ impl UiState {
     pub fn enter(&mut self) {
         match self.game.state {
             GameState::SelectPiece => {
-                self.selected_piece = self.pieces_board[self.cursor_pos].take();
-                if self.selected_piece.is_some() {
-                    self.game.state = GameState::PlacePiece;
-                    self.game.player_turn = 3 - self.game.player_turn;
-                }
-            }
+	            if let Some(piece) = self.pieces_board[self.cursor_pos] {
+					match self.game.select_next_piece(piece) {
+						Ok(()) => self.pieces_board[self.cursor_pos] = None,
+						Err(GameError::PeaceInUse) => {
+							log::error!("Something went terribly wrong, we tried to place a piece that was already on the board");
+							panic!("Duplicate pieces on same board");
+						},
+						Err(_) => {},
+		            }
+	            }
+            },
             GameState::PlacePiece => {
-                if self.game.board[self.cursor_pos].is_none() {
-                    self.game.board[self.cursor_pos] = self.selected_piece.take();
-                    self.game.state = GameState::SelectPiece;
-                }
-            }
-            GameState::GameOver => {}
+	            if let Err(GameError::NoPieceSelected) = self.game.place_piece(self.cursor_pos) {
+					log::error!("Something went terribly wrong, we tried to place a piece while none was selected");
+					panic!("Place without selected piece");
+	            }
+            },
+            GameState::GameOver => {},
         }
     }
 }

@@ -110,6 +110,16 @@ impl Board {
         board
     }
 
+	/// True if `piece` already exists on the board
+    pub fn contains(&self, piece: Piece) -> bool {
+		for row in &self.0 {
+			if row.iter().any(|cell| *cell == Some(piece)) {
+				return true;
+			}
+		}
+		return false;
+    }
+
     /// Check for Game Over condition
     /// (at least 1 property has to be equal on all 4 fields of a row, column or diagonal)
     /// Returns `Some(msg)` for game over, `None` otherwise
