@@ -1,4 +1,5 @@
-#![recursion_limit="256"]
+// #![recursion_limit="256"]
+#![recursion_limit="512"]
 
 use quart_lib::{Game};
 use std::sync::Mutex;
@@ -11,6 +12,8 @@ use listenfd::ListenFd;
 
 mod handlers;
 mod render;
+
+pub const BASE_PATH: &str = "";
 
 pub struct AppState {
 	game: Mutex<Game>,
@@ -39,20 +42,10 @@ async fn main() -> std::io::Result<()>{
 					.guard(handlers::board_pos_guard)
 					.route(web::get().to(handlers::mov_cur_to))
 				)
-				// .route("/by/{x}/{name}", web::get().to(handlers::greet))
 			)
 			.route("/enter", web::get().to(handlers::enter))
-			.route("/", web::get().to(handlers::greet))
-			.route("/{name}", web::get().to(handlers::greet))
-			// .wrap(print_board::PrintBoard)
-			// .wrap_fn(|request,service| {
-			// 	use actix_service::Service;
-			// 	use futures::future::FutureExt;
-			// 	service.call(request).map(|res| {
-			// 		println!("Res: {:?}", res);
-			// 		res
-			// 	})
-			// })
+			// .route("/", web::get().to(handlers::greet))
+			.route("/s/{filename:.*}", web::get().to(handlers::file))
 	});
 
 	// if systemfd is running, we reuse the already opened fd
