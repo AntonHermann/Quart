@@ -6,20 +6,21 @@ pub mod gui;
 /// Contains the User Interface State
 pub mod ui_state;
 
-use std::io;
-use quart_lib::{board::*, Game, GameState::*};
+use quart_lib::{board::*, Game, GameState::*, GameError};
 use self::gui::{Gui, Event};
 use self::ui_state::UiState;
+
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[cfg(feature = "ai_enemy")]
 use quart_ai_enemy::*;
 
-fn main() -> io::Result<()> {
+fn main() -> Result<()> {
 	let res = run();
 	log::info!("{:?}", res);
 	res
 }
-fn run() -> io::Result<()> {
+fn run() -> Result<()> {
     flexi_logger::Logger::with_env_or_str("info, quart::gui=debug")
         .log_to_file()
         .directory(     concat!(env!("CARGO_MANIFEST_DIR"), "/logs"))
@@ -40,7 +41,7 @@ fn run() -> io::Result<()> {
 	// Then we let the `AiEnemy` do his move and so on.
 	// Howewer I think that a redesign is the better idea, entirely splitting game logic and user interface
 	#[cfg(feature = "ai_enemy")]
-    let _ai_enemy = AiEnemy::new();
+    let mut ai_agent = AiEnemy::new();
 
     let mut gui = gui::create_default()?;
 
@@ -64,9 +65,27 @@ fn run() -> io::Result<()> {
 
         if ui_state.game.check() {
 	        log::info!("Game Over: {:?}", ui_state.game.game_over_info);
-            // GAME OVER
-            // break;
         }
+
+		#[cfg(feature = "ai_enemy")] {
+			if !ui_state.game.is_over() && ui_state.game.player_turn == 2 {
+		        gui.draw(&ui_state)?; // redraw boards and piece preview
+
+		        loop { // we let the ai_agent try again and again until he does a valid move
+					let (pos, piece) = ai_agent.play(&ui_state.game);
+					match ui_state.game.place_piece(pos).and_then(|_| ui_state.game.select_next_piece(piece)) {
+						Ok(()) => {
+							// turn finished successfully
+							ui_state.pieces_board.remove(piece);
+							break
+						},
+						Err(GameError::GameIsOver) => break, // game over
+						e @ Err(GameError::NoPieceSelected) => e?, // propagate critical error
+						Err(_) => {}, // other GameErrors are less important
+					}
+		        }
+	        }
+		}
 
         // redraw boards and piece preview
         gui.draw(&ui_state)?;
@@ -78,7 +97,7 @@ fn run() -> io::Result<()> {
 	log::info!("End, {:?}", ui_state.game);
     if ui_state.game.state == GameOver {
         println!("+++ GAME OVER +++");
-        println!("Player {} lost", ui_state.game.player_turn);
+        println!("Player {} won", ui_state.game.player_turn);
         println!("{:?}", ui_state.game.game_over_info);
     }
 

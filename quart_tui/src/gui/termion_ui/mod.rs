@@ -155,7 +155,7 @@ fn draw<W: Write>(mut out: W, ui_state: &UiState, layout: Option<&Layout>) -> io
 
     let status_str = if ui_state.game.is_over() {
 	    if let Some(goi) = ui_state.game.game_over_info.as_ref() {
-	        format!("Game over because of {}", goi.property)
+	        format!("Player {} won because of {}", ui_state.game.player_turn, goi.property)
 	    } else {
 			log::error!("Should be Some(..)");
 			String::new()

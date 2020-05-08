@@ -58,8 +58,11 @@ impl Game {
 			Err(GameError::CellOccupied)
 		} else {
 			self.board[place_pos] = self.selected_piece;
-			self.state = GameState::SelectPiece;
-			// self.player_turn = 3 - self.player_turn; // FIXME
+			self.state = if self.check() {
+				GameState::GameOver
+			} else {
+				GameState::SelectPiece
+			};
 			Ok(())
 		}
 	}
@@ -67,14 +70,17 @@ impl Game {
 	/// Select `next_piece` for the next player, it's his turn now
 	///
 	/// Errors:
+	/// - GameIsOver: when method is called after GameOver
 	/// - PeaceInUse: `next_piece` is already on the board
 	pub fn select_next_piece(&mut self, next_piece: Piece) -> Result<(), GameError> {
-		if self.board.contains(next_piece) {
+		if self.is_over() {
+			Err(GameError::GameIsOver)
+		} else if self.board.contains(next_piece) {
 			Err(GameError::PeaceInUse)
 		} else {
 			self.selected_piece = Some(next_piece);
 			self.state = GameState::PlacePiece;
-			self.player_turn = 3 - self.player_turn; // FIXME
+			self.player_turn = 3 - self.player_turn;
 			Ok(())
 		}
 	}

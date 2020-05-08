@@ -14,7 +14,10 @@ pub struct BPos {
 impl BPos {
     /// Create a new new Board Position struct
     pub fn new(x: u16, y: u16) -> Self {
-        Self { x, y }
+        Self {
+        	x : x % 4,
+        	y : y % 4,
+        }
     }
 }
 impl fmt::Debug for BPos {
@@ -118,6 +121,17 @@ impl Board {
 			}
 		}
 		return false;
+    }
+
+	/// Removes the first occurence of `piece`, returning `true` on success
+    pub fn remove(&mut self, piece: Piece) -> bool {
+		for row in &mut self.0 {
+			if let Some(p) = row.iter_mut().find(|p| **p == Some(piece)) {
+				p.take();
+				return true;
+			}
+		}
+		false
     }
 
     /// Check for Game Over condition
