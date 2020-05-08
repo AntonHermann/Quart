@@ -58,8 +58,11 @@ async fn main() -> std::io::Result<()>{
 			.route("/s/{filename:.*}", web::get().to(handlers::file))
 	});
 
+	log::debug!("Created game and server");
+
 	// if systemfd is running, we reuse the already opened fd
 	server = if let Some(listener) = listenfd.take_tcp_listener(0).unwrap() {
+		log::info!("Attached to existing server instance");
 		if let Ok(local_addr) = listener.local_addr() {
 			eprintln!("Listening at addr {}", local_addr);
 		} else {
@@ -67,6 +70,7 @@ async fn main() -> std::io::Result<()>{
 		}
 		server.listen(listener)?
 	} else {
+		log::info!("Binding to address {}", SERVER_ADDR);
 		eprintln!("Bound to http://{}/", SERVER_ADDR);
 		server.bind(SERVER_ADDR)?
 	};

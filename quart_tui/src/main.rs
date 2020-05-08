@@ -11,6 +11,9 @@ use quart_lib::{board::*, Game, GameState::*};
 use self::gui::{Gui, Event};
 use self::ui_state::UiState;
 
+#[cfg(feature = "ai_enemy")]
+use quart_ai_enemy::*;
+
 fn main() -> io::Result<()> {
 	let res = run();
 	log::info!("{:?}", res);
@@ -28,6 +31,16 @@ fn run() -> io::Result<()> {
     // game state
     let mut ui_state = UiState::new(Game::new());
     log::debug!("Created game");
+
+	// FIXME: now we created an AiEnemy, but when does its `play()` get called?
+	// It seems that we have mixed up Game logic and GUI pretty much,
+	// so that the `Game` struct handles GUI stuff as well. This sucks ^^
+	// Maybe a possibility to continue would be to extend the match arm for Event::Enter
+	// and after calling `game.enter()`, check whether now it's the other players turn.
+	// Then we let the `AiEnemy` do his move and so on.
+	// Howewer I think that a redesign is the better idea, entirely splitting game logic and user interface
+	#[cfg(feature = "ai_enemy")]
+    let _ai_enemy = AiEnemy::new();
 
     let mut gui = gui::create_default()?;
 

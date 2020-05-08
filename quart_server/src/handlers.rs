@@ -21,10 +21,12 @@ pub async fn file(req: HttpRequest) -> Result<NamedFile> {
 		std::fs::create_dir(&resources_dir)?;
 	}
 	let file_path = resources_dir.join(path);
+	log::info!("Serving file {}", file_path.display());
 	Ok(NamedFile::open(file_path)?)
 }
 
 pub async fn mov_cur_by(app_state: Data<AppState>, delta: web::Path<(i8,i8)>) -> HttpResponse {
+	log::info!("Requested: Move Cursor By {:?}", delta);
 	let mut ui_state = app_state.ui_state.lock().unwrap();
 
 	ui_state.move_cursor(delta.0.into(), delta.1.into());
@@ -32,7 +34,9 @@ pub async fn mov_cur_by(app_state: Data<AppState>, delta: web::Path<(i8,i8)>) ->
 	let s = render(&ui_state);
 	HttpResponse::Ok().content_type("text/html").body(s)
 }
+
 pub async fn mov_cur_to(app_state: Data<AppState>, pos: web::Path<(u8,u8)>) -> HttpResponse {
+	log::info!("Requested: Move Cursor To {:?}", pos);
 	let mut ui_state = app_state.ui_state.lock().unwrap();
 	
 	ui_state.set_cursor_pos(BPos::new(pos.0.into(), pos.1.into()));
@@ -40,7 +44,9 @@ pub async fn mov_cur_to(app_state: Data<AppState>, pos: web::Path<(u8,u8)>) -> H
 	let s = render(&ui_state);
 	HttpResponse::Ok().content_type("text/html").body(s)
 }
+
 pub async fn enter(app_state: Data<AppState>) -> HttpResponse {
+	log::info!("Requested: Enter");
 	let mut ui_state = app_state.ui_state.lock().unwrap();
 	ui_state.enter();
 	ui_state.game.check();
@@ -48,7 +54,9 @@ pub async fn enter(app_state: Data<AppState>) -> HttpResponse {
 	let s = render(&ui_state);
 	HttpResponse::Ok().content_type("text/html").body(s)
 }
+
 pub async fn show(app_state: Data<AppState>) -> HttpResponse {
+	log::info!("Requested: Show");
 	let ui_state = app_state.ui_state.lock().unwrap();
 	let s = render(&ui_state);
 	HttpResponse::Ok().content_type("text/html").body(s)

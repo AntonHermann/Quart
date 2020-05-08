@@ -3,4 +3,5 @@ members = [
 	"quart_lib",
 	"quart_tui",
 	"quart_server",
+	"quart_ai_enemy",
 ]
