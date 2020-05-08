@@ -13,7 +13,6 @@ use listenfd::ListenFd;
 mod handlers;
 mod render;
 
-// pub const BASE_PATH: &str = "";
 pub const SERVER_ADDRESS: &str = "127.0.0.1:8000";
 
 pub struct AppState {
@@ -22,7 +21,6 @@ pub struct AppState {
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()>{
-    // FIXME: when used outside of this dir, the log files are around everywhere!
     flexi_logger::Logger::with_env_or_str("info, quart::gui=debug")
         .log_to_file()
         .directory     (concat!(env!("CARGO_MANIFEST_DIR"), "/logs"))
