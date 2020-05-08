@@ -21,10 +21,13 @@ pub async fn file(req: HttpRequest) -> Result<NamedFile> {
 		std::fs::create_dir(&resources_dir)?;
 	}
 	let file_path = resources_dir.join(path);
+	log::info!("Serving file {}", file_path.display());
 	Ok(NamedFile::open(file_path)?)
 }
 
 pub async fn mov_cur_by(data: Data<AppState>, delta: web::Path<(i8,i8)>) -> HttpResponse {
+	log::info!("Requested: Move Cursor By {:?}", delta);
+
 	let mut game = data.game.lock().unwrap(); // get game's MutexGuard
 
 	game.move_cursor(delta.0.into(), delta.1.into());
@@ -33,17 +36,29 @@ pub async fn mov_cur_by(data: Data<AppState>, delta: web::Path<(i8,i8)>) -> Http
 	HttpResponse::Ok().content_type("text/html").body(s)
 }
 pub async fn mov_cur_to(data: Data<AppState>, pos: web::Path<(u8,u8)>) -> HttpResponse {
+	log::info!("Requested: Move Cursor To {:?}", pos);
+
 	let mut game = data.game.lock().unwrap(); // get game's MutexGuard
+
 	game.set_cursor_pos(BPos::new(pos.0.into(), pos.1.into()));
 
 	let s = render(&game);
 	HttpResponse::Ok().content_type("text/html").body(s)
 }
 pub async fn enter(data: Data<AppState>) -> HttpResponse {
+	log::info!("Requested: Enter");
+
 	let mut game = data.game.lock().unwrap(); // get game's MutexGuard
 	game.enter();
 	game.check();
 
+	let s = render(&game);
+	HttpResponse::Ok().content_type("text/html").body(s)
+}
+pub async fn show(data: Data<AppState>) -> HttpResponse {
+	log::info!("Requested: Show");
+
+	let game = data.game.lock().unwrap(); // get game's MutexGuard
 	let s = render(&game);
 	HttpResponse::Ok().content_type("text/html").body(s)
 }
