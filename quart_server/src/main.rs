@@ -13,7 +13,7 @@ use listenfd::ListenFd;
 mod handlers;
 mod render;
 
-pub const BASE_PATH: &str = "";
+// pub const BASE_PATH: &str = "";
 pub const SERVER_ADDRESS: &str = "127.0.0.1:8000";
 
 pub struct AppState {
