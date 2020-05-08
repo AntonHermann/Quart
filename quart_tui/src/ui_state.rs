@@ -48,7 +48,7 @@ impl UiState {
 	            if let Some(piece) = self.pieces_board[self.cursor_pos] {
 					match self.game.select_next_piece(piece) {
 						Ok(()) => self.pieces_board[self.cursor_pos] = None,
-						Err(GameError::PeaceInUse) => {
+						Err(GameError::PieceInUse) => {
 							log::error!("Something went terribly wrong, we tried to place a piece that was already on the board");
 							panic!("Duplicate pieces on same board");
 						},

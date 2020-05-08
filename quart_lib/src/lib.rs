@@ -71,12 +71,12 @@ impl Game {
 	///
 	/// Errors:
 	/// - GameIsOver: when method is called after GameOver
-	/// - PeaceInUse: `next_piece` is already on the board
+	/// - PieceInUse: `next_piece` is already on the board
 	pub fn select_next_piece(&mut self, next_piece: Piece) -> Result<(), GameError> {
 		if self.is_over() {
 			Err(GameError::GameIsOver)
 		} else if self.board.contains(next_piece) {
-			Err(GameError::PeaceInUse)
+			Err(GameError::PieceInUse)
 		} else {
 			self.selected_piece = Some(next_piece);
 			self.state = GameState::PlacePiece;
