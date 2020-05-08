@@ -6,7 +6,8 @@ mod util;
 
 pub use self::util::*;
 use super::{Gui, Event};
-use quart_lib::{Game, GameState::*, BPos};
+use quart_lib::{GameState::*, BPos};
+use crate::UiState;
 use std::io::{self, Write};
 use termion::{
     clear,
@@ -42,15 +43,15 @@ impl TermionGui {
 	}
 }
 impl Gui for TermionGui{
-	fn draw(&mut self, game: &Game) -> io::Result<()> {
-		draw(&mut self.out, game, None)
+	fn draw(&mut self, ui_state: &UiState) -> io::Result<()> {
+		draw(&mut self.out, ui_state, None)
 	}
-	fn poll_event(&mut self, game: &Game) -> Option<Event> {
+	fn poll_event(&mut self, ui_state: &UiState) -> Option<Event> {
 		io::stdin()
 			.events()
 			.filter_map(Result::ok)
 			.inspect(|e| log::debug!("Event: {:?}", e))
-			.filter_map(|te| event_from_termion_event(te, game))
+			.filter_map(|te| event_from_termion_event(te, ui_state))
 			.next()
 	}
 }
@@ -61,7 +62,7 @@ impl Drop for TermionGui {
 	}
 }
 
-fn event_from_termion_event(e: TEvent, game: &Game) -> Option<Event> {
+fn event_from_termion_event(e: TEvent, ui_state: &UiState) -> Option<Event> {
 	Some(match e {
 		TEvent::Key(k) => match k {
             Key::Esc | Key::Char('q') => Event::Exit,
@@ -80,7 +81,7 @@ fn event_from_termion_event(e: TEvent, game: &Game) -> Option<Event> {
         },
         TEvent::Mouse(m) => match m {
 			MouseEvent::Press(_,x,y) => {
-				if let Some(bpos) = screen_to_bpos(&game, None, x, y) {
+				if let Some(bpos) = screen_to_bpos(&ui_state, None, x, y) {
 					Event::CursorToPos(bpos)
 				} else {
 			        return None
@@ -117,14 +118,14 @@ impl Layout {
     }
 }
 /// This function brings the whole game to live. Here the game scene is drawn
-fn draw<W: Write>(mut out: W, game: &Game, layout: Option<&Layout>) -> io::Result<()> {
+fn draw<W: Write>(mut out: W, ui_state: &UiState, layout: Option<&Layout>) -> io::Result<()> {
 	log::trace!("draw_gui");
     let layout = layout.unwrap_or(&LAYOUT_WIDE);
 
     write!(out, "{}", clear::All)?;
 
-    let main_focus = game.state == PlacePiece || game.state == GameOver;
-    let highlights = if let Some(goi) = game.game_over_info.as_ref() {
+    let main_focus = ui_state.game.state == PlacePiece || ui_state.game.state == GameOver;
+    let highlights = if let Some(goi) = ui_state.game.game_over_info.as_ref() {
 		goi.positions.clone()
     } else {
 	    Vec::new()
@@ -133,8 +134,8 @@ fn draw<W: Write>(mut out: W, game: &Game, layout: Option<&Layout>) -> io::Resul
     draw_board(
         &mut out,
         layout.main_board,
-        &game.main_board,
-        game.cursor_pos,
+        &ui_state.game.board,
+        ui_state.cursor_pos,
         main_focus,
         true,
         highlights,
@@ -143,8 +144,8 @@ fn draw<W: Write>(mut out: W, game: &Game, layout: Option<&Layout>) -> io::Resul
     draw_board(
         &mut out,
         layout.pieces_board,
-        &game.pieces_board,
-        game.cursor_pos,
+        &ui_state.pieces_board,
+        ui_state.cursor_pos,
         !main_focus,
         false,
         Vec::new(),
@@ -153,20 +154,20 @@ fn draw<W: Write>(mut out: W, game: &Game, layout: Option<&Layout>) -> io::Resul
     let label_pos = layout.pieces_board.translated_i32(2, -1);
     draw_label(&mut out, label_pos, 25, PIECES_BOARD_LABEL)?;
 
-    let status_str = if game.is_over() {
-	    if let Some(goi) = game.game_over_info.as_ref() {
+    let status_str = if ui_state.game.is_over() {
+	    if let Some(goi) = ui_state.game.game_over_info.as_ref() {
 	        format!("Game over because of {}", goi.property)
 	    } else {
 			log::error!("Should be Some(..)");
 			String::new()
 	    }
     } else {
-        format!("Player {}'s turn!", game.player_turn)
+        format!("Player {}'s turn!", ui_state.game.player_turn)
     };
     draw_label(&mut out, layout.status_label, std::cmp::max(25,status_str.len() as u16), &status_str)?;
 
-    if game.state == PlacePiece {
-        draw_selected_piece(&mut out, layout.curr_piece, game.selected_piece)?;
+    if ui_state.game.state == PlacePiece {
+        draw_selected_piece(&mut out, layout.curr_piece, ui_state.selected_piece)?;
     }
 
 	log::trace!("before goto 0,1");
@@ -179,9 +180,9 @@ fn draw<W: Write>(mut out: W, game: &Game, layout: Option<&Layout>) -> io::Resul
 }
 
 /// Returns the BoardPos sfKLJSFLKJSFLKDSJF:LKDSJF:LSD
-fn screen_to_bpos(game: &Game, layout: Option<&Layout>, x: u16, y: u16) -> Option<BPos> {
+fn screen_to_bpos(ui_state: &UiState, layout: Option<&Layout>, x: u16, y: u16) -> Option<BPos> {
     let layout = layout.unwrap_or(&LAYOUT_WIDE);
-	let offset = match game.state {
+	let offset = match ui_state.game.state {
 		PlacePiece => layout.main_board,
 		SelectPiece => layout.pieces_board,
 		GameOver => return None,

@@ -3,17 +3,19 @@
 
 /// Contains the Terminal User Interface
 pub mod gui;
+/// Contains the User Interface State
+pub mod ui_state;
 
 use std::io;
 use quart_lib::{board::*, Game, GameState::*};
 use self::gui::{Gui, Event};
+use self::ui_state::UiState;
 
 fn main() -> io::Result<()> {
 	let res = run();
 	log::info!("{:?}", res);
 	res
 }
-
 fn run() -> io::Result<()> {
     // FIXME: when used outside of this dir, the log files are around everywhere!
     flexi_logger::Logger::with_env_or_str("info, quart::gui=debug")
@@ -25,47 +27,47 @@ fn run() -> io::Result<()> {
         .unwrap();
 
     // game state
-    let mut game = Game::new();
+    let mut ui_state = UiState::new(Game::new());
     log::debug!("Created game");
 
     let mut gui = gui::create_default()?;
 
     // initial drawing
-    gui.draw(&game)?;
+    gui.draw(&ui_state)?;
 
 	// TODO: switch to gui.poll_event() and gui::Event
     // game loop
-    while let Some(event) = gui.poll_event(&game) {
+    while let Some(event) = gui.poll_event(&ui_state) {
         match event {
 			Event::Exit 			=> break,
-			Event::CursorUp 		=> game.move_cursor(0, -1),
-			Event::CursorDown 		=> game.move_cursor(0, 1),
-			Event::CursorLeft 		=> game.move_cursor(-1, 0),
-			Event::CursorRight 		=> game.move_cursor(1, 0),
-			Event::CursorToX(x) 	=> game.set_cursor_x(x),
-			Event::CursorToY(y) 	=> game.set_cursor_y(y),
-			Event::Enter 			=> game.enter(),
-			Event::CursorToPos(pos) => game.set_cursor_pos(pos),
+			Event::CursorUp 		=> ui_state.move_cursor(0, -1),
+			Event::CursorDown 		=> ui_state.move_cursor(0, 1),
+			Event::CursorLeft 		=> ui_state.move_cursor(-1, 0),
+			Event::CursorRight 		=> ui_state.move_cursor(1, 0),
+			Event::CursorToX(x) 	=> ui_state.set_cursor_x(x),
+			Event::CursorToY(y) 	=> ui_state.set_cursor_y(y),
+			Event::Enter 			=> ui_state.enter(),
+			Event::CursorToPos(pos) => ui_state.set_cursor_pos(pos),
         }
 
-        if game.check() {
-	        log::info!("Game Over: {:?}", game.game_over_info);
+        if ui_state.game.check() {
+	        log::info!("Game Over: {:?}", ui_state.game.game_over_info);
             // GAME OVER
             // break;
         }
 
         // redraw boards and piece preview
-        gui.draw(&game)?;
+        gui.draw(&ui_state)?;
     }
     log::trace!("After game loop");
 
     std::mem::drop(gui);
 
-	log::info!("End, {:?}", game);
-    if game.state == GameOver {
+	log::info!("End, {:?}", ui_state.game);
+    if ui_state.game.state == GameOver {
         println!("+++ GAME OVER +++");
-        println!("Player {} lost", game.player_turn);
-        println!("{:?}", game.game_over_info);
+        println!("Player {} lost", ui_state.game.player_turn);
+        println!("{:?}", ui_state.game.game_over_info);
     }
 
     Ok(())

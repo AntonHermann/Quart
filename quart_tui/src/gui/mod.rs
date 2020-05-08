@@ -9,7 +9,8 @@ match_cfg! {
 	}
 }
 
-use crate::{Game, BPos};
+use crate::BPos;
+use crate::UiState;
 
 use std::io::Result;
 
@@ -38,9 +39,9 @@ pub enum Event {
 /// A generic user interface
 pub trait Gui {
 	/// Draw Gui
-	fn draw(&mut self, game: &Game) -> Result<()>;
+	fn draw(&mut self, ui_state: &UiState) -> Result<()>;
 	/// Poll pending events
-	fn poll_event(&mut self, game: &Game) -> Option<Event>;
+	fn poll_event(&mut self, ui_state: &UiState) -> Option<Event>;
 }
 
 /// Create a Gui instance
