@@ -1,4 +1,4 @@
-use quart_lib::{BPos};
+use quart_lib::BPos;
 use std::path::PathBuf;
 use actix_web::{
 	web::{self, Data},
@@ -24,27 +24,33 @@ pub async fn file(req: HttpRequest) -> Result<NamedFile> {
 	Ok(NamedFile::open(file_path)?)
 }
 
-pub async fn mov_cur_by(data: Data<AppState>, delta: web::Path<(i8,i8)>) -> HttpResponse {
-	let mut game = data.game.lock().unwrap(); // get game's MutexGuard
+pub async fn mov_cur_by(app_state: Data<AppState>, delta: web::Path<(i8,i8)>) -> HttpResponse {
+	let mut ui_state = app_state.ui_state.lock().unwrap();
 
-	game.move_cursor(delta.0.into(), delta.1.into());
+	ui_state.move_cursor(delta.0.into(), delta.1.into());
 
-	let s = render(&game);
+	let s = render(&ui_state);
 	HttpResponse::Ok().content_type("text/html").body(s)
 }
-pub async fn mov_cur_to(data: Data<AppState>, pos: web::Path<(u8,u8)>) -> HttpResponse {
-	let mut game = data.game.lock().unwrap(); // get game's MutexGuard
-	game.set_cursor_pos(BPos::new(pos.0.into(), pos.1.into()));
+pub async fn mov_cur_to(app_state: Data<AppState>, pos: web::Path<(u8,u8)>) -> HttpResponse {
+	let mut ui_state = app_state.ui_state.lock().unwrap();
+	
+	ui_state.set_cursor_pos(BPos::new(pos.0.into(), pos.1.into()));
 
-	let s = render(&game);
+	let s = render(&ui_state);
 	HttpResponse::Ok().content_type("text/html").body(s)
 }
-pub async fn enter(data: Data<AppState>) -> HttpResponse {
-	let mut game = data.game.lock().unwrap(); // get game's MutexGuard
-	game.enter();
-	game.check();
+pub async fn enter(app_state: Data<AppState>) -> HttpResponse {
+	let mut ui_state = app_state.ui_state.lock().unwrap();
+	ui_state.enter();
+	ui_state.game.check();
 
-	let s = render(&game);
+	let s = render(&ui_state);
+	HttpResponse::Ok().content_type("text/html").body(s)
+}
+pub async fn show(app_state: Data<AppState>) -> HttpResponse {
+	let ui_state = app_state.ui_state.lock().unwrap();
+	let s = render(&ui_state);
 	HttpResponse::Ok().content_type("text/html").body(s)
 }
 

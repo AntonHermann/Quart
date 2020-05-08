@@ -1,4 +1,5 @@
-use quart_lib::{Game, Board, BPos, GameState, Piece};
+use quart_lib::{Board, BPos, GameState, Piece};
+use crate::ui_state::UiState;
 use typed_html::{
 	html, text,
 	dom::DOMTree,
@@ -6,23 +7,23 @@ use typed_html::{
 	types::{SpacedSet, Class, Id},
 };
 
-pub fn render(game: &Game) -> String {
+pub fn render(ui_state: &UiState) -> String {
 	// whether the main board is active
-	let main_act = game.state != GameState::SelectPiece;
-	let status_msg = if game.state == GameState::GameOver {
+	let main_act = ui_state.game.state != GameState::SelectPiece;
+	let status_msg = if ui_state.game.state == GameState::GameOver {
 		html!(
 		  <h2 class="msg_game_over">
-			{ text!("Game Over, player {} won!", game.player_turn) }
+			{ text!("Game Over, player {} won!", ui_state.game.player_turn) }
 		  </h2>
 		)
 	} else {
 		html!(
 		  <h2 class="msg_player_turn">
-		  	{ text!("Player {}s turn", game.player_turn) }
+		  	{ text!("Player {}s turn", ui_state.game.player_turn) }
 		  </h2>
 		)
 	};
-	let cursor = game.cursor_pos;
+	let cursor = ui_state.cursor_pos;
 	let doc: DOMTree<String> = html!(
       <html>
     	<head>
@@ -33,12 +34,12 @@ pub fn render(game: &Game) -> String {
         <body>
           <h1>"Quart"</h1>
           <div id="content">
-			{ render_board(&game.main_board, Id::new("main_board"), cursor, main_act) }
+			{ render_board(&ui_state.game.board, Id::new("main_board"), cursor, main_act) }
 			<div id="center_view">
 			  <a href="/enter" id="button_submit"><span>"Submit"</span></a>
-			  { render_selected_piece(game.selected_piece) }
+			  { render_selected_piece(ui_state.selected_piece) }
 			</div>
-			{ render_board(&game.pieces_board, Id::new("pieces_board"), cursor, !main_act) }
+			{ render_board(&ui_state.pieces_board, Id::new("pieces_board"), cursor, !main_act) }
 		  </div>
 		  <div id="status_msg">
 			{ status_msg }

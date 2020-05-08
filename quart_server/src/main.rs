@@ -1,7 +1,7 @@
 // #![recursion_limit="256"]
 #![recursion_limit="512"]
 
-use quart_lib::{Game};
+use quart_lib::Game;
 use std::sync::Mutex;
 use actix_web::{
 	web::{self, Data},
@@ -12,17 +12,20 @@ use listenfd::ListenFd;
 
 mod handlers;
 mod render;
+mod ui_state;
+
+use self::ui_state::UiState;
 
 pub const BASE_PATH: &str = "";
 
 pub struct AppState {
-	game: Mutex<Game>,
+	ui_state: Mutex<UiState>,
 }
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()>{
 	let game = Data::new(AppState {
-		game: Mutex::new(Game::new())
+		ui_state: Mutex::new(UiState::new(Game::new()))
 	});
 
 	// for live reloading
@@ -44,7 +47,7 @@ async fn main() -> std::io::Result<()>{
 				)
 			)
 			.route("/enter", web::get().to(handlers::enter))
-			// .route("/", web::get().to(handlers::greet))
+			.route("/", web::get().to(handlers::show))
 			.route("/s/{filename:.*}", web::get().to(handlers::file))
 	});
 
