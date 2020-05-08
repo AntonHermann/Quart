@@ -14,6 +14,7 @@ mod handlers;
 mod render;
 
 pub const BASE_PATH: &str = "";
+pub const SERVER_ADDRESS: &str = "127.0.0.1:8000";
 
 pub struct AppState {
 	game: Mutex<Game>,
@@ -21,6 +22,15 @@ pub struct AppState {
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()>{
+    // FIXME: when used outside of this dir, the log files are around everywhere!
+    flexi_logger::Logger::with_env_or_str("info, quart::gui=debug")
+        .log_to_file()
+        .directory     (concat!(env!("CARGO_MANIFEST_DIR"), "/logs"))
+        .create_symlink(concat!(env!("CARGO_MANIFEST_DIR"), "/log.log"))
+        .format(flexi_logger::default_format)
+        .start()
+        .unwrap();
+
 	let game = Data::new(AppState {
 		game: Mutex::new(Game::new())
 	});
@@ -44,16 +54,28 @@ async fn main() -> std::io::Result<()>{
 				)
 			)
 			.route("/enter", web::get().to(handlers::enter))
-			// .route("/", web::get().to(handlers::greet))
+			.route("/", web::get().to(handlers::show))
 			.route("/s/{filename:.*}", web::get().to(handlers::file))
 	});
 
+	log::debug!("Created game and server");
+
 	// if systemfd is running, we reuse the already opened fd
 	server = if let Some(listener) = listenfd.take_tcp_listener(0).unwrap() {
+		log::info!("Attached to existing server instance");
+		if let Ok(local_addr) = listener.local_addr() {
+			eprintln!("Attached to server instance bound to {}", local_addr);
+		} else {
+			eprintln!("Attached to server instance with unknown address");
+		}
 		server.listen(listener)?
 	} else {
-		server.bind("127.0.0.1:8000")?
+		log::info!("Binding to address {}", SERVER_ADDRESS);
+		eprintln!("Binding to address http://{}/", SERVER_ADDRESS);
+		server.bind(SERVER_ADDRESS)?
 	};
+
+
 
 	server.run().await
 }
