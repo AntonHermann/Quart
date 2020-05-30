@@ -58,11 +58,8 @@ impl Game {
 			Err(GameError::CellOccupied)
 		} else {
 			self.board[place_pos] = self.selected_piece;
-			self.state = if self.check() {
-				GameState::GameOver
-			} else {
-				GameState::SelectPiece
-			};
+			self.state = GameState::SelectPiece;
+			self.check();
 			Ok(())
 		}
 	}

@@ -31,7 +31,7 @@ impl fmt::Debug for BPos {
 }
 
 /// One game piece, with 4 distinctive properties
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Default)]
 pub struct Piece {
     /// Big or small
     pub big: bool,
@@ -67,7 +67,7 @@ impl fmt::Debug for Piece {
 }
 
 /// A game board (array of rows)
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Board(pub [[Option<Piece>; 4]; 4]);
 impl Index<BPos> for Board {
     type Output = Option<Piece>;
@@ -185,6 +185,12 @@ impl Board {
         } else {
             None
         }
+    }
+
+	/// How many pieces there are on the board
+    pub fn piece_count(&self) -> usize {
+		// pub struct Board(pub [[Option<Piece>; 4]; 4]);
+		self.0.iter().map(|row: &[Option<Piece>; 4]| row.iter().filter(|field| field.is_some()).count()).sum()
     }
 }
 

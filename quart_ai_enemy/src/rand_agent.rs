@@ -1,4 +1,4 @@
-use quart_lib::{Game, BPos, Piece};
+use quart_lib::{Game, BPos, Piece, Board};
 use rand::prelude::*;
 use crate::AiAgent;
 
@@ -13,23 +13,28 @@ impl RandAgent {
 }
 impl AiAgent for RandAgent {
 	fn play(&mut self, game: &Game) -> (BPos, Piece) {
-		let mut pos = random_bpos();
-		while game.board[pos].is_some() {
-			pos = random_bpos();
-		}
-
-		let mut piece = random_piece();
-		while game.board.contains(piece) {
-			piece = random_piece();
-		}
-
-		(pos, piece)
+		valid_random_move(&game.board)
 	}
 }
 impl Default for RandAgent {
 	fn default() -> Self { Self::new() }
 }
 
+/// Generates a random move thats valid on the given board
+pub(crate) fn valid_random_move(board: &Board) -> (BPos, Piece) {
+	assert!(board.piece_count() < 16);
+	let mut pos = random_bpos();
+	while board[pos].is_some() {
+		pos = random_bpos();
+	}
+
+	let mut piece = random_piece();
+	while board.contains(piece) {
+		piece = random_piece();
+	}
+
+	(pos, piece)
+}
 fn random_bpos() -> BPos {
 	let mut rng = thread_rng();
 	let x = rng.gen_range(0, 4);

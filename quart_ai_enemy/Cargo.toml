@@ -11,3 +11,4 @@ quart_lib = { path = "../quart_lib" }
 log = "0.4.8"
 flexi_logger = "0.14.8"
 rand = "0.7.3"
+itertools = "0.9.0"

@@ -34,7 +34,7 @@ fn run() -> Result<()> {
     log::debug!("Created game");
 
 	#[cfg(feature = "ai_enemy")]
-    let mut ai_agent: Box<dyn AiAgent> = get_ai_agent();
+    let mut ai_agent: Box<dyn AiAgent> = get_ai_agent(&ui_state.game);
 
     let mut gui = gui::create_default()?;
 
@@ -63,10 +63,11 @@ fn run() -> Result<()> {
 		#[cfg(feature = "ai_enemy")] {
 			use quart_lib::GameError;
 			if !ui_state.game.is_over() && ui_state.game.player_turn == 2 {
-		        gui.draw(&ui_state)?; // redraw boards and piece preview
+				gui.draw(&ui_state)?; // redraw boards and piece preview
 
-		        loop { // we let the ai_agent try again and again until he does a valid move
+				loop { // we let the ai_agent try again and again until he does a valid move
 					let (pos, piece) = ai_agent.play(&ui_state.game);
+					log::trace!("AI_Agent wants to put the selected piece at {:?} and select {:?} afterwards", pos, piece);
 					match ui_state.game.place_piece(pos).and_then(|_| ui_state.game.select_next_piece(piece)) {
 						Ok(()) => {
 							// turn finished successfully
@@ -75,7 +76,7 @@ fn run() -> Result<()> {
 						},
 						Err(GameError::GameIsOver) => break, // game over
 						e @ Err(GameError::NoPieceSelected) => e?, // propagate critical error
-						Err(_) => {}, // other GameErrors are less important
+						Err(e) => log::warn!("GameError: {:?}", e), // other GameErrors are less important
 					}
 		        }
 	        }
