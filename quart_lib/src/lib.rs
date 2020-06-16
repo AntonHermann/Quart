@@ -64,6 +64,25 @@ impl Game {
 		}
 	}
 
+	/// Check if selected piece can be placed on the board at `place_pos`
+	/// Returns a `PlacePieceTransaction` on success which can be used to perform
+	/// the real placing later on
+	///
+	/// Errors:
+	/// - NoPieceSelected: `self.selected_piece` is `None`
+	/// - CellOccupied:	`place_pos` is already occupied with a piece
+	pub fn probe_place_piece(&mut self, place_pos: BPos) -> Result<PlacePieceTransaction, GameError> {
+		if self.selected_piece.is_none() {
+			Err(GameError::NoPieceSelected)
+		} else if self.board[place_pos].is_some() {
+			Err(GameError::CellOccupied)
+		} else {
+			Ok(PlacePieceTransaction {
+				selected_piece: self.selected_piece,
+				place_pos,
+			})
+		}
+	}
 	/// Select `next_piece` for the next player, it's his turn now
 	///
 	/// Errors:
@@ -104,4 +123,20 @@ impl Default for Game {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Transaction returned by `probe_place_piece`, allows delaying committing changes.
+/// Is used by AI_Agents so if the following call to `select_next_piece` fails, we
+/// can choose to not run the entire transaction
+pub struct PlacePieceTransaction {
+	selected_piece: Option<Piece>,
+	place_pos: BPos,
+}
+impl PlacePieceTransaction {
+	/// Run the transaction
+	pub fn run(self, game: &mut Game) {
+		game.board[self.place_pos] = self.selected_piece;
+		game.state = GameState::SelectPiece;
+		game.check();
+	}
 }

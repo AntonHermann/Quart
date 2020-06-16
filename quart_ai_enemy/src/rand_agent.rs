@@ -7,7 +7,7 @@ pub struct RandAgent;
 
 impl RandAgent {
 	/// Create a new AI enemy
-	pub fn new() -> Self {
+	pub fn new(_game: &Game) -> Self {
 		Self
 	}
 }
@@ -15,9 +15,6 @@ impl AiAgent for RandAgent {
 	fn play(&mut self, game: &Game) -> (BPos, Piece) {
 		valid_random_move(&game.board)
 	}
-}
-impl Default for RandAgent {
-	fn default() -> Self { Self::new() }
 }
 
 /// Generates a random move thats valid on the given board

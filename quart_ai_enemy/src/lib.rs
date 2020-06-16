@@ -11,7 +11,7 @@ pub trait AiAgent {
 	fn play(&mut self, game: &Game) -> (BPos, Piece);
 }
 
-pub fn get_ai_agent(_game: &Game) -> Box<dyn AiAgent> {
-	Box::new(self::rand_agent::RandAgent::new())
-	// Box::new(self::decision_tree_agent::DecisionTreeAgent::new(game))
+pub fn get_ai_agent(game: &Game) -> Box<dyn AiAgent> {
+	// Box::new(self::rand_agent::RandAgent::new(game))
+	Box::new(self::decision_tree_agent::DecisionTreeAgent::new(game))
 }

@@ -21,7 +21,7 @@ fn main() -> Result<()> {
 	res
 }
 fn run() -> Result<()> {
-    flexi_logger::Logger::with_env_or_str("info, quart::gui=debug")
+    flexi_logger::Logger::with_env_or_str("info, quart_tui::gui=info, quart_ai_enemy=trace")
         .log_to_file()
         .directory(     concat!(env!("CARGO_MANIFEST_DIR"), "/logs"))
         .create_symlink(concat!(env!("CARGO_MANIFEST_DIR"), "/log.log"))
@@ -41,7 +41,6 @@ fn run() -> Result<()> {
     // initial drawing
     gui.draw(&ui_state)?;
 
-	// TODO: switch to gui.poll_event() and gui::Event
     // game loop
     while let Some(event) = gui.poll_event(&ui_state) {
         match event {
@@ -68,14 +67,23 @@ fn run() -> Result<()> {
 				loop { // we let the ai_agent try again and again until he does a valid move
 					let (pos, piece) = ai_agent.play(&ui_state.game);
 					log::trace!("AI_Agent wants to put the selected piece at {:?} and select {:?} afterwards", pos, piece);
-					match ui_state.game.place_piece(pos).and_then(|_| ui_state.game.select_next_piece(piece)) {
+
+					let place_piece_transaction = match ui_state.game.probe_place_piece(pos) {
+						Ok(transact) => transact,
+						e @ Err(GameError::NoPieceSelected) => e?, // propagate critical error
+						Err(e) => { // other GameErrors are less important
+							log::warn!("GameError: {:?}", e);
+							continue
+						},
+					};
+					match ui_state.game.select_next_piece(piece) {
 						Ok(()) => {
-							// turn finished successfully
+							// now we can actually execute the transaction
+							place_piece_transaction.run(&mut ui_state.game);
 							ui_state.pieces_board.remove(piece);
 							break
 						},
 						Err(GameError::GameIsOver) => break, // game over
-						e @ Err(GameError::NoPieceSelected) => e?, // propagate critical error
 						Err(e) => log::warn!("GameError: {:?}", e), // other GameErrors are less important
 					}
 		        }
