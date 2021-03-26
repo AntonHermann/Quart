@@ -1,118 +1,104 @@
 use quart_lib::{Board, BPos, GameState, Piece};
 use crate::ui_state::UiState;
-use typed_html::{
-	html, text,
-	dom::DOMTree,
-	elements,
-	types::{SpacedSet, Class, Id},
-};
+use itertools::join;
 
 pub fn render(ui_state: &UiState) -> String {
 	// whether the main board is active
 	let main_act = ui_state.game.state != GameState::SelectPiece;
 	let status_msg = if ui_state.game.state == GameState::GameOver {
-		html!(
-		  <h2 class="msg_game_over">
-			{ text!("Game Over, player {} won!", ui_state.game.player_turn) }
-		  </h2>
-		)
+		format!("<h2 class='msg_game_over'>Game Over, player {} won!</h2>", ui_state.game.player_turn)
 	} else {
-		html!(
-		  <h2 class="msg_player_turn">
-		  	{ text!("Player {}s turn", ui_state.game.player_turn) }
-		  </h2>
-		)
+		format!("<h2 class='msg_player_turn'>Player {}s turn</h2>", ui_state.game.player_turn)
 	};
 	let cursor = ui_state.cursor_pos;
-	let doc: DOMTree<String> = html!(
+	let board1 = render_board(&ui_state.game.board, "main_board", cursor, main_act);
+	let selected_piece = render_selected_piece(ui_state.selected_piece);
+	let board2 = render_board(&ui_state.pieces_board, "pieces_board", cursor, !main_act);
+	format!(r#"
       <html>
     	<head>
-          <title>"Quart"</title>
-          // <meta name=Metadata::Author content="Not Sanrio Co., Ltd"/>
+          <title>Quart</title>
           <link rel="stylesheet" href="/s/style.css" />
         </head>
         <body>
-          <h1>"Quart"</h1>
+          <h1>Quart</h1>
           <div id="content">
-			{ render_board(&ui_state.game.board, Id::new("main_board"), cursor, main_act) }
+          	{board1}
 			<div id="center_view">
 			  <a href="/enter" id="button_submit"><span>"Submit"</span></a>
-			  { render_selected_piece(ui_state.selected_piece) }
+			  {selected_piece}
 			</div>
-			{ render_board(&ui_state.pieces_board, Id::new("pieces_board"), cursor, !main_act) }
+			{board2}
 		  </div>
 		  <div id="status_msg">
-			{ status_msg }
+			{status_msg}
 		  </div>
         </body>
-      </html>
-	);
-	doc.to_string()
+      </html>"#, status_msg=status_msg, board1=board1, selected_piece=selected_piece, board2=board2)
 }
 
-fn render_board(board: &Board, id: Id, cursor: BPos, sel: bool) -> Box<elements::table<String>> {
-	let mut class = SpacedSet::new();
-	if sel {
-		class.add("selected");
+fn render_board(board: &Board, id: &'static str, cursor: BPos, sel: bool) -> String {
+	let class = if sel { "selected" } else { "" };
+
+	let mut rows = String::new();
+	for x in 0..4 {
+		let mut cells = String::new();
+		for y in 0..4 {
+        	cells.push_str(&render_cell(board, x, y, cursor, sel));
+		}
+		let row = format!("<tr><th class='numbers num_l'>{num}</th>{cells}<th class='numbers num_r'>{num}</th></tr>", num=x+1, cells=cells);
+		rows.push_str(&row);
 	}
-	html!(
-        <table id=id class=class>
+	format!(r#"
+        <table id={id} class={class}>
         	<tr class="digits dig_u">
-				<th></th> <th>"A"</th> <th>"B"</th> <th>"C"</th> <th>"D"</th>
+				<th></th> <th>A</th> <th>B</th> <th>C</th> <th>D</th>
         	</tr>
-        	{ (0..4).map(|x| html!(
-        	<tr>
-        		<th class="numbers num_l"> { text!("{}",x+1) } </th>
-            	{ (0..4).map(|y| render_cell(board, x, y, cursor, sel)) }
-        		<th class="numbers num_r"> { text!("{}",x+1) } </th>
-            </tr>
-        	)) }
+			{rows}
         	<tr class="digits dig_d">
-				<th></th> <th>"A"</th> <th>"B"</th> <th>"C"</th> <th>"D"</th>
+				<th></th> <th>A</th> <th>B</th> <th>C</th> <th>D</th>
         	</tr>
-		</table>
-	)
+		</table>"#,
+		id=id, class=class, rows=rows)
 }
 
-fn render_cell(board: &Board, x: u16, y: u16, cursor: BPos, sel: bool) -> Box<elements::td<String>> {
+fn render_cell(board: &Board, x: u16, y: u16, cursor: BPos, sel: bool) -> String {
 	let pos = BPos::new(x,y);
 	let piece = board[pos];
-	let id = Id::new(format!("cell_{}_{}", x, y));
+	let id = format!("cell_{}_{}", x, y);
 	let href = if sel { format!("/move_cursor/to/{}/{}", x, y) } else { "".into() };
 	let mut class_list = gen_classlist_for_piece(piece);
 	if pos == cursor {
-		class_list.add("piece_cursor");
+		class_list.push("piece_cursor".into());
 	}
 	let content = gen_piece_string(piece);
 
-	html!(
-		<td class=class_list>
-			<a href=href id=id>
-				{ text!("{}", content) }
-			</a>
-		</td>
-	)
+	format!("
+		<td class='{class_list}'>
+			<a href='{href}' id='{id}'>{content}</a>
+		</td>",
+		class_list=join(class_list, ", "), href=href, id=id, content=content)
 }
 
-fn render_selected_piece(piece: Option<Piece>) -> Box<elements::div<String>> {
+fn render_selected_piece(piece: Option<Piece>) -> String {
 	let class_list = gen_classlist_for_piece(piece);
 	let content = gen_piece_string(piece);
-	html!(
-	  <div id="selected_piece" class=class_list>
+	format!(r#"
+	  <div id="selected_piece" class="{class_list}">
 		<span>
-		  { text!("{}", content) }
+		  {content}
 		</span>
-	  </div>
-	)
+	  </div>"#,
+	  class_list=join(class_list, ", "), content=content)
 }
 
-fn gen_classlist_for_piece(piece: Option<Piece>) -> SpacedSet<Class> {
-	let mut classes = SpacedSet::new();
+fn gen_classlist_for_piece(piece: Option<Piece>) -> Vec<&'static str> {
+	let mut classes = Vec::new();
 	if let Some(piece) = piece {
-		if piece.big   { classes.add("piece_big"); }
-		if piece.dark  { classes.add("piece_dark"); }
-		if piece.flat  { classes.add("piece_flat"); }
-		if piece.round { classes.add("piece_round"); }
+		if piece.big   { classes.push("piece_big"); }
+		if piece.dark  { classes.push("piece_dark"); }
+		if piece.flat  { classes.push("piece_flat"); }
+		if piece.round { classes.push("piece_round"); }
 	}
 	classes
 }
